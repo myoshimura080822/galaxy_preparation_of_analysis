@@ -1,0 +1,256 @@
+<tool id="GetFastQCRawDataFiles" name="GetFastQCRawDataFiles" version="0.01">
+
+
+<command interpreter="python">
+
+        GetFastQCRawDataFiles.py --script_path "$runMe" --interpreter "python" 
+            --tool_name "GetFastQCRawDataFiles"   --output_dir "./" --output_tab "$tab_file" 
+</command>
+<inputs>
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="GetFastQCRawDataFiles"/> 
+
+</inputs>
+<outputs>
+ <data format="tabular" name="tab_file" label="${job_name}"/>
+
+</outputs>
+<configfiles>
+<configfile name="runMe">
+import sys
+import os
+print "python :" + sys.version
+import ConfigParser
+import dateutil.tz
+import bioblend
+from bioblend.galaxy import GalaxyInstance
+from bioblend.galaxy.histories import HistoryClient
+from bioblend.galaxy.datasets import DatasetClient
+import pandas
+
+print  os.getcwd()
+print u"GetFastQCRawDataFiles.py Started......"
+
+inp = sys.argv[1]
+#inp_apikey = sys.argv[2]
+inp_apikey = "10afbde7da5df2099648c8752b2ffdf7"
+#inp_hname = sys.argv[3]
+inp_hname = "0501_tooltest2"
+
+outp = sys.argv[2]
+
+print u"inp: " + inp
+print u"inp_apikey: " + inp_apikey
+print u"inp_hname: " + inp_hname
+print u"outp: " + outp
+
+if len(inp_apikey.strip()) == 0:
+    raise Exception, ' API_KEY is not entered.'
+
+if len(inp_hname.strip()) == 0:
+    raise Exception, 'Current History Name is not entered.'
+
+output_name = "RawData"
+output_chk = "Basic Statistics\tpass"
+
+print output_name + " /file chk str:" + output_chk
+
+def makeDir(dname):
+    if os.path.exists(dname) is False:
+        os.mkdir(dname)
+        print '%s (dir) created.' % dname
+    else:
+        print '%s (dir) is already exists.' % dname
+
+def findDatfilePath(dClient, h_list, hname):
+
+    dset_list = [dset for dset in [dClient.show_dataset(hst['id']) for hst in h_list]
+        if dset['state'] == "ok" and dset['peek'] is not None]
+    dset_list = [dset for dset in dset_list if str(output_chk) in dset['peek']]
+    dset_df = pandas.DataFrame(dset_list)
+    dset_list = dset_df[["hid","name","id"]]
+    print dset_list
+
+    file_dir = '/galaxy-central/config/get_dataset_path_out'
+    makeDir(file_dir)
+    path_list = [dl_dset(dt_id, dClient, file_dir) for dt_id in dset_list["id"]]
+    path_df = pandas.DataFrame(path_list)
+    path_df.columns = ['id','file_name']
+    print path_df
+
+    merge_df = pandas.merge(dset_list, path_df, how='right', on='id', left_index=False, right_index=False)
+    print merge_df
+
+    return merge_df
+
+def dl_dset(id, dClient, dir):
+    print id
+    file_path = dir + '/' + str(id)
+    dClient.download_dataset(id, file_path, use_default_filename=False)
+    ret_set = [id, file_path]
+    return ret_set
+
+def dataout(data, filename):
+    data.to_csv(filename, sep="\t")
+
+def main():
+    GALAXY_URL = 'http://localhost:80/'
+    API_KEY = inp_apikey
+    gInstance = GalaxyInstance(url=GALAXY_URL, key=API_KEY)
+    hClient = HistoryClient(gInstance)
+    dClient = DatasetClient(gInstance)
+
+    hst = [x for x in hClient.get_histories() if x['name'].strip() == inp_hname.strip()][0]
+    if len(hst['id']) == 0:
+        raise Exception, inp_hname + ' is not found. please check your current history name.'
+    print hst['id']
+    hst_cont_all = hClient.show_history(hst['id'], deleted=False, contents=True, visible=True, details=True)
+    hst_cont_ok = [x for x in hst_cont_all if str(output_name) in x['name'] and x['deleted'] == False and x['state'] == 'ok' ]
+    if (len(hst_cont_ok) &gt; 0):
+        path_list = findDatfilePath(dClient, hst_cont_ok, hst['name'])
+        dataout(path_list, outp)
+    else:
+        raise Exception, inp_wftype + ' output file is not found.'
+
+if __name__ == '__main__':
+        main()
+
+print u"....All Done. End of Script"
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="GetFastQCRawDataFiles_test1_input.xls" ftype="None"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="GetFastQCRawDataFiles_test1_output.xls" ftype="tabular"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ import sys
+ import os
+ print "python :" + sys.version
+ import ConfigParser
+ import dateutil.tz
+ import bioblend
+ from bioblend.galaxy import GalaxyInstance
+ from bioblend.galaxy.histories import HistoryClient
+ from bioblend.galaxy.datasets import DatasetClient
+ import pandas
+ 
+ print  os.getcwd()
+ print u"GetFastQCRawDataFiles.py Started......"
+ 
+ inp = sys.argv[1]
+ #inp_apikey = sys.argv[2]
+ inp_apikey = "10afbde7da5df2099648c8752b2ffdf7"
+ #inp_hname = sys.argv[3]
+ inp_hname = "0501_tooltest2"
+ 
+ outp = sys.argv[2]
+ 
+ print u"inp: " + inp
+ print u"inp_apikey: " + inp_apikey
+ print u"inp_hname: " + inp_hname
+ print u"outp: " + outp
+ 
+ if len(inp_apikey.strip()) == 0:
+     raise Exception, ' API_KEY is not entered.'
+ 
+ if len(inp_hname.strip()) == 0:
+     raise Exception, 'Current History Name is not entered.'
+ 
+ output_name = "RawData"
+ output_chk = "FastQC"
+ 
+ print output_name + " /file chk str:" + output_chk
+ 
+ def makeDir(dname):
+     if os.path.exists(dname) is False:
+         os.mkdir(dname)
+         print '%s (dir) created.' % dname
+     else:
+         print '%s (dir) is already exists.' % dname
+ 
+ def findDatfilePath(dClient, h_list, hname):
+ 
+     dset_list = [dset for dset in [dClient.show_dataset(hst['id']) for hst in h_list]
+         if dset['state'] == "ok" and dset['peek'] is not None]
+     dset_list = [dset for dset in dset_list if str(output_chk) in dset['peek']]
+     dset_df = pandas.DataFrame(dset_list)
+     dset_list = dset_df[["hid","name","id"]]
+     print dset_list
+ 
+     file_dir = '/galaxy-central/config/get_dataset_path_out'
+     makeDir(file_dir)
+     path_list = [dl_dset(dt_id, dClient, file_dir) for dt_id in dset_list["id"]]
+     path_df = pandas.DataFrame(path_list)
+     path_df.columns = ['id','file_name']
+     print path_df
+ 
+     merge_df = pandas.merge(dset_list, path_df, how='right', on='id', left_index=False, right_index=False)
+     print merge_df
+ 
+     return merge_df
+ 
+ def dl_dset(id, dClient, dir):
+     print id
+     file_path = dir + '/' + str(id)
+     dClient.download_dataset(id, file_path, use_default_filename=False)
+     ret_set = [id, file_path]
+     return ret_set
+ 
+ def dataout(data, filename):
+     data.to_csv(filename, sep="\t")
+ 
+ def main():
+     GALAXY_URL = 'http://localhost:80/'
+     API_KEY = inp_apikey
+     gInstance = GalaxyInstance(url=GALAXY_URL, key=API_KEY)
+     hClient = HistoryClient(gInstance)
+     dClient = DatasetClient(gInstance)
+ 
+     hst = [x for x in hClient.get_histories() if x['name'].strip() == inp_hname.strip()][0]
+     if len(hst['id']) == 0:
+         raise Exception, inp_hname + ' is not found. please check your current history name.'
+     print hst['id']
+     hst_cont_all = hClient.show_history(hst['id'], deleted=False, contents=True, visible=True, details=True)
+     hst_cont_ok = [x for x in hst_cont_all if str(output_name) in x['name'] and x['deleted'] == False and x['state'] == 'ok' ]
+     if (len(hst_cont_ok) &gt; 0):
+         path_list = findDatfilePath(dClient, hst_cont_ok, hst['name'])
+         dataout(path_list, outp)
+     else:
+         raise Exception, inp_wftype + ' output file is not found.'
+ 
+ if __name__ == '__main__':
+         main()
+ 
+ print u"....All Done. End of Script"
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 04/05/2015 11:29:50
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>
+

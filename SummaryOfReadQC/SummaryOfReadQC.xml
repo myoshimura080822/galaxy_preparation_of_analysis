@@ -1,0 +1,132 @@
+<tool id="SummaryOfReadQC" name="SummaryOfReadQC" version="0.01">
+
+
+<command interpreter="python">
+
+        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" 
+            --tool_name "SummaryOfReadQC" --input_tab "$input1"   --output_dir "./" --output_tab "$tab_file" 
+</command>
+<inputs>
+<param name="input1"  type="data" format="None" label="Select a suitable input file from your history"/> 
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
+
+</inputs>
+<outputs>
+    <data format="tabular" name="tab_file" label="${job_name}"/>
+</outputs>
+<configfiles>
+<configfile name="runMe">
+library("dplyr")
+library("plyr")
+library("tidyr")
+library("stringr")
+
+ourargs = commandArgs(TRUE)
+inf = ourargs[1]
+outf = ourargs[2]
+cat("input file name:");inf
+cat("output file name:");outf
+cat("\n")
+
+path_list &lt;- read.table(inf, header=T, row.names=1, sep="\t")
+head(path_list)
+
+data &lt;- ldply(
+  as.character(path_list[["file_name"]]),
+  function(x){
+    data.frame(filename=basename(x),
+               str_split_fixed(matrix(scan(x, what = character(), sep = "\n", nlines = 7, skip = 3), 7, byrow=T), "\\t", 2))
+  }
+) %&gt;% spread(filename,X2)
+
+rownames(data) &lt;- sub(" ", "_", data\$X1)
+rownames(data)
+
+file_name = str_sub(as.character(unname(unlist(data["Filename",]))), start = 1, end = 17)
+total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
+per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
+outp &lt;- data.frame(file_name,total_seq,per_GC)
+outp &lt;- outp[-1,]
+summary(outp)
+cat("\n")
+
+write.table(outp, outf, quote=F, sep="\t", row.names=F, append=F)
+
+cat("....All Done. End of Script\n")
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="SummaryOfReadQC_test1_input.xls" ftype="None"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="SummaryOfReadQC_test1_output.xls" ftype="tabular"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ library("dplyr")
+ library("plyr")
+ library("tidyr")
+ library("stringr")
+ 
+ ourargs = commandArgs(TRUE)
+ inf = ourargs[1]
+ outf = ourargs[2]
+ cat("input file name:");inf
+ cat("output file name:");outf
+ cat("\n")
+ 
+ path_list &lt;- read.table(inf, header=T, row.names=1, sep="\t")
+ head(path_list)
+ 
+ data &lt;- ldply(
+   as.character(path_list[["file_name"]]),
+   function(x){
+     data.frame(filename=basename(x),
+                str_split_fixed(matrix(scan(x, what = character(), sep = "\n", nlines = 7, skip = 3), 7, byrow=T), "\\t", 2))
+   }
+ ) %&gt;% spread(filename,X2)
+ 
+ rownames(data) &lt;- sub(" ", "_", data\$X1)
+ rownames(data)
+ 
+ file_name = str_sub(as.character(unname(unlist(data["Filename",]))), start = 1, end = 17)
+ total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
+ per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
+ outp &lt;- data.frame(file_name,total_seq,per_GC)
+ outp &lt;- outp[-1,]
+ summary(outp)
+ cat("\n")
+ 
+ write.table(outp, outf, quote=F, sep="\t", row.names=F, append=F)
+ 
+ cat("....All Done. End of Script\n")
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 04/05/2015 11:13:46
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>
+

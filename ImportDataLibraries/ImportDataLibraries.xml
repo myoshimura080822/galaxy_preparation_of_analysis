@@ -1,0 +1,388 @@
+<tool id="ImportDataLibraries" name="ImportDataLibraries" version="0.01">
+
+
+<command interpreter="python">
+
+        ImportDataLibraries.py --script_path "$runMe" --interpreter "python" 
+            --tool_name "ImportDataLibraries"   --output_dir "./" --output_tab "$tab_file" 
+</command>
+<inputs>
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="ImportDataLibraries"/> 
+
+</inputs>
+<outputs>
+ <data format="txt" name="tab_file" label="${job_name}"/>
+
+</outputs>
+<configfiles>
+<configfile name="runMe">
+import sys
+import pwd, os
+import subprocess
+import time
+import datetime
+import dateutil.tz
+import bioblend
+from bioblend import galaxy
+from subprocess import CalledProcessError
+import collections
+
+print pwd.getpwuid(os.getuid())[0]
+
+print  os.getcwd()
+print u"ImportDataLibraries.py Started......"
+
+url = "http://localhost"
+admin_email = os.environ.get('GALAXY_DEFAULT_ADMIN_USER', 'admin@galaxy.org')
+admin_pass = os.environ.get('GALAXY_DEFAULT_ADMIN_PASSWORD', 'admin')
+gi = galaxy.GalaxyInstance(url=url, email=admin_email, password=admin_pass)
+datetime = "_" + datetime.datetime.today().strftime("%Y%m%d%H%M")
+
+path_list = []
+
+def create_datalib(dname, dist=""):
+    print "Create Data library......"
+
+    dlib = [x for x in gi.libraries.get_libraries() if x['name'].strip() == dname.strip()]
+    if len(dlib) &gt; 0:
+        print gi.libraries.get_libraries()
+        raise Exception, dname + ' is already exist.'
+
+    new_lib = gi.libraries.create_library(dname, dist)
+    new_lib_id = new_lib['id']
+    return new_lib_id
+
+def merge_data(path):
+    makeDir(path)
+
+class MultiDict(collections.MutableMapping):
+    def __init__(self):
+        self._dict = {}
+
+    def __setitem__(self, key, value):
+        t = self._dict.get(key, ())
+        self._dict[key] = t + (value,)
+
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __delitem__(self, key):
+        del self._dict[key]
+
+    def __iter__(self):
+        return iter(self._dict)
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __contains__(self, item):
+        return item in self._dict
+
+    def __str__(self):
+        return str(self._dict)
+
+def create_pair_path(root_dir):
+    path_list = MultiDict()
+    for root, dirs, files in os.walk(root_dir):
+        #first = os.path.basename(os.path.normpath(root))
+        dirname = os.path.dirname(root)
+
+        if "Project" in dirname:
+            file_list = [os.path.join(root, filename) for filename in files if 'fastq.gz' in filename]
+            #path_list[len(path_list):len(path_list)] = file_list
+            path_list[os.path.basename(dirname)] = file_list[0]
+
+    keys_list = path_list.keys()
+    lane_01 = list(path_list[keys_list[0]])
+    lane_01.sort()
+    #print lane_01
+    print len(lane_01)
+    lane_02 = list(path_list[keys_list[1]])
+    lane_02.sort()
+    #print lane_02
+    print len(lane_02)
+
+    pair_filepath = [[f1, [f2 for f2 in lane_02 if str(os.path.basename(f1)).replace("L001","L002") in f2][0]] for f1 in lane_01]
+    print pair_filepath
+    print len(pair_filepath)
+
+    return pair_filepath
+
+def merge_pair_fastq(list, outdir):
+
+    ret_list = []
+    for i, item in enumerate(list):
+        output_filename = outdir + "_".join(str(os.path.basename(item[0])).split('_')[:4]) + ".fastq"
+        print output_filename
+
+        if not os.path.isfile(output_filename):
+            with open(output_filename, 'w') as f:
+                proc = subprocess.Popen(["zcat", item[0], item[1]], env=os.environ, stdout=f, stderr=subprocess.PIPE)
+            stdout, stderr = proc.communicate()
+            retcode = proc.returncode
+            del proc
+
+            if retcode == 1:
+                raise ScriptRunningError('zcat command could not run of \$ %s\n%s' % (str(output_filename), str(stderr)))
+            else:
+                ret_list.append(output_filename)
+        else:
+            print output_filename + "is already created."
+
+    return '\n'.join(ret_list)
+
+class ScriptRunningError(Exception):
+    pass
+
+def import_data(new_lib_id, name_list):
+    gi.libraries.upload_from_galaxy_filesystem(
+        new_lib_id,
+        name_list,
+        file_type = 'fastqsanger',
+        link_data_only = 'link_to_files'
+    )
+    time.sleep(1)
+
+    # Wait for uploads to complete
+    while True:
+        try:
+            ret = subprocess.check_output(["qstat"])
+            ret_list = ret.split('\n')
+            if not len([x for x in ret_list if 'upload' in x]):
+                break
+            time.sleep(3)
+        except CalledProcessError as inst:
+            if inst.returncode == 153: #queue is empty
+                break
+            else:
+                raise
+
+    time.sleep(10)
+    print "Finished importing test data."
+
+def makeDir(dname):
+    if os.path.exists(dname) is False:
+        os.mkdir(dname)
+        print '%s (dir) created.' % dname
+    else:
+        print '%s (dir) is already exists.' % dname
+
+def main():
+
+    pair_filepath = create_pair_path("/data/LS2402-PDIS9009/")
+    output_dir = "/data/LS2402-PDIS9009/" + "merged_fastq" + datetime + "/"
+    makeDir(output_dir)
+    ret_fastq_list = merge_pair_fastq(pair_filepath, output_dir)
+    new_lib_id = create_datalib("Test data library" + datetime)
+    import_data(new_lib_id, ret_fastq_list)
+
+
+if __name__ == '__main__':
+        main()
+
+
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="ImportDataLibraries_test1_input.xls" ftype="None"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="ImportDataLibraries_test1_output.xls" ftype="txt"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ import sys
+ import pwd, os
+ import subprocess
+ import time
+ import datetime
+ import dateutil.tz
+ import bioblend
+ from bioblend import galaxy
+ from subprocess import CalledProcessError
+ import collections
+ 
+ print pwd.getpwuid(os.getuid())[0]
+ 
+ print  os.getcwd()
+ print u"ImportDataLibraries.py Started......"
+ 
+ url = "http://localhost"
+ admin_email = os.environ.get('GALAXY_DEFAULT_ADMIN_USER', 'admin@galaxy.org')
+ admin_pass = os.environ.get('GALAXY_DEFAULT_ADMIN_PASSWORD', 'admin')
+ gi = galaxy.GalaxyInstance(url=url, email=admin_email, password=admin_pass)
+ datetime = "_" + datetime.datetime.today().strftime("%Y%m%d%H%M")
+ 
+ path_list = []
+ 
+ def create_datalib(dname, dist=""):
+     print "Create Data library......"
+ 
+     dlib = [x for x in gi.libraries.get_libraries() if x['name'].strip() == dname.strip()]
+     if len(dlib) &gt; 0:
+         print gi.libraries.get_libraries()
+         raise Exception, dname + ' is already exist.'
+ 
+     new_lib = gi.libraries.create_library(dname, dist)
+     new_lib_id = new_lib['id']
+     return new_lib_id
+ 
+ def merge_data(path):
+     makeDir(path)
+ 
+ class MultiDict(collections.MutableMapping):
+     def __init__(self):
+         self._dict = {}
+ 
+     def __setitem__(self, key, value):
+         t = self._dict.get(key, ())
+         self._dict[key] = t + (value,)
+ 
+     def __getitem__(self, key):
+         return self._dict[key]
+ 
+     def __delitem__(self, key):
+         del self._dict[key]
+ 
+     def __iter__(self):
+         return iter(self._dict)
+ 
+     def __len__(self):
+         return len(self._dict)
+ 
+     def __contains__(self, item):
+         return item in self._dict
+ 
+     def __str__(self):
+         return str(self._dict)
+ 
+ def create_pair_path(root_dir):
+     path_list = MultiDict()
+     for root, dirs, files in os.walk(root_dir):
+         #first = os.path.basename(os.path.normpath(root))
+         dirname = os.path.dirname(root)
+ 
+         if "Project" in dirname:
+             file_list = [os.path.join(root, filename) for filename in files if 'fastq.gz' in filename]
+             #path_list[len(path_list):len(path_list)] = file_list
+             path_list[os.path.basename(dirname)] = file_list[0]
+ 
+     keys_list = path_list.keys()
+     lane_01 = list(path_list[keys_list[0]])
+     lane_01.sort()
+     #print lane_01
+     print len(lane_01)
+     lane_02 = list(path_list[keys_list[1]])
+     lane_02.sort()
+     #print lane_02
+     print len(lane_02)
+ 
+     pair_filepath = [[f1, [f2 for f2 in lane_02 if str(os.path.basename(f1)).replace("L001","L002") in f2][0]] for f1 in lane_01]
+     print pair_filepath
+     print len(pair_filepath)
+ 
+     return pair_filepath
+ 
+ def merge_pair_fastq(list, outdir):
+ 
+     ret_list = []
+     for i, item in enumerate(list):
+         output_filename = outdir + "_".join(str(os.path.basename(item[0])).split('_')[:4]) + ".fastq"
+         print output_filename
+ 
+         if not os.path.isfile(output_filename):
+             with open(output_filename, 'w') as f:
+                 proc = subprocess.Popen(["zcat", item[0], item[1]], env=os.environ, stdout=f, stderr=subprocess.PIPE)
+             stdout, stderr = proc.communicate()
+             retcode = proc.returncode
+             del proc
+ 
+             if retcode == 1:
+                 raise ScriptRunningError('zcat command could not run of \$ %s\n%s' % (str(output_filename), str(stderr)))
+             else:
+                 ret_list.append(output_filename)
+         else:
+             print output_filename + "is already created."
+ 
+     return '\n'.join(ret_list)
+ 
+ class ScriptRunningError(Exception):
+     pass
+ 
+ def import_data(new_lib_id, name_list):
+     gi.libraries.upload_from_galaxy_filesystem(
+         new_lib_id,
+         name_list,
+         file_type = 'fastqsanger',
+         link_data_only = 'link_to_files'
+     )
+     time.sleep(1)
+ 
+     # Wait for uploads to complete
+     while True:
+         try:
+             ret = subprocess.check_output(["qstat"])
+             ret_list = ret.split('\n')
+             if not len([x for x in ret_list if 'upload' in x]):
+                 break
+             time.sleep(3)
+         except CalledProcessError as inst:
+             if inst.returncode == 153: #queue is empty
+                 break
+             else:
+                 raise
+ 
+     time.sleep(10)
+     print "Finished importing test data."
+ 
+ def makeDir(dname):
+     if os.path.exists(dname) is False:
+         os.mkdir(dname)
+         print '%s (dir) created.' % dname
+     else:
+         print '%s (dir) is already exists.' % dname
+ 
+ def main():
+ 
+     pair_filepath = create_pair_path("/data/LS2402-PDIS9009/")
+     output_dir = "/data/LS2402-PDIS9009/" + "merged_fastq" + datetime + "/"
+     makeDir(output_dir)
+     ret_fastq_list = merge_pair_fastq(pair_filepath, output_dir)
+     new_lib_id = create_datalib("Test data library" + datetime)
+     import_data(new_lib_id, ret_fastq_list)
+ 
+ 
+ if __name__ == '__main__':
+         main()
+ 
+ 
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 04/05/2015 11:45:42
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>
+
