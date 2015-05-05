@@ -4,11 +4,16 @@
 <command interpreter="python">
 
         GetFastQCRawDataFiles.py --script_path "$runMe" --interpreter "python" 
-            --tool_name "GetFastQCRawDataFiles"   --output_dir "./" --output_tab "$tab_file" 
+            --tool_name "GetFastQCRawDataFiles" --inp_apikey "$inp_apikey" --inp_hname "$inp_hname" --output_dir "./" --output_tab "$tab_file" 
 </command>
 <inputs>
-<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="GetFastQCRawDataFiles"/> 
-
+  <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="GetFastQCRawDataFiles"/> 
+  <param name="inp_apikey" size="50" type="text" label="Copy and Paste your API_KEY from Menu-bar[User]>[API keys]>[Current API key] " value="">
+    <validator type="empty_field" message="No API_KEY is available for the input text form"/>
+  </param>
+  <param name="inp_hname" size="30" type="text" label="Supply your Current history name from top of history pain " value="">
+    <validator type="empty_field" message="No Current hitory name is available for the input text form"/>
+  </param>
 </inputs>
 <outputs>
  <data format="tabular" name="tab_file" label="${job_name}"/>
@@ -31,12 +36,9 @@ print  os.getcwd()
 print u"GetFastQCRawDataFiles.py Started......"
 
 inp = sys.argv[1]
-#inp_apikey = sys.argv[2]
-inp_apikey = "10afbde7da5df2099648c8752b2ffdf7"
-#inp_hname = sys.argv[3]
-inp_hname = "0501_tooltest2"
-
-outp = sys.argv[2]
+inp_apikey = sys.argv[2]
+inp_hname = sys.argv[3]
+outp = sys.argv[4]
 
 print u"inp: " + inp
 print u"inp_apikey: " + inp_apikey

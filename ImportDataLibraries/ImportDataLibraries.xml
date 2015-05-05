@@ -4,15 +4,19 @@
 <command interpreter="python">
 
         ImportDataLibraries.py --script_path "$runMe" --interpreter "python" 
-            --tool_name "ImportDataLibraries"   --output_dir "./" --output_tab "$tab_file" 
+            --tool_name "ImportDataLibraries" --import_dir "$import_dir" --lib_name "$lib_name" --output_dir "./" --output_tab "$tab_file" 
 </command>
 <inputs>
-<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="ImportDataLibraries"/> 
-
+  <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="ImportDataLibraries"/> 
+  <param name="import_dir" size="30" type="text" label="Supply your local 'data' subdirectory name for import to galaxy (caution:same-read file is executed zcat automaticaly)" value="/data/">
+    <validator type="empty_field" message="No import-dir name is available for the input text form"/>
+  </param>
+  <param name="lib_name" size="30" type="text" label="Supply Data Library name for import read-files" value="">
+    <validator type="empty_field" message="No library name is available for the input text form"/>
+  </param>
 </inputs>
 <outputs>
  <data format="txt" name="tab_file" label="${job_name}"/>
-
 </outputs>
 <configfiles>
 <configfile name="runMe">
@@ -27,9 +31,17 @@ from bioblend import galaxy
 from subprocess import CalledProcessError
 import collections
 
-print pwd.getpwuid(os.getuid())[0]
+inp = sys.argv[1]
+import_dir = sys.argv[2]
+lib_name = sys.argv[3]
+outp = sys.argv[4]
+print u"inp: " + inp
+print u"import_dir: " + import_dir
+print u"lib_name: " + lib_name
+print u"outp: " + outp
 
-print  os.getcwd()
+print pwd.getpwuid(os.getuid())[0]
+print os.getcwd()
 print u"ImportDataLibraries.py Started......"
 
 url = "http://localhost"
@@ -91,6 +103,9 @@ def create_pair_path(root_dir):
             file_list = [os.path.join(root, filename) for filename in files if 'fastq.gz' in filename]
             #path_list[len(path_list):len(path_list)] = file_list
             path_list[os.path.basename(dirname)] = file_list[0]
+        else:
+            print "this dir files is not-Hiseq reads."
+            return ""
 
     keys_list = path_list.keys()
     lane_01 = list(path_list[keys_list[0]])
@@ -131,6 +146,11 @@ def merge_pair_fastq(list, outdir):
 
     return '\n'.join(ret_list)
 
+def get_import_files(dir_name):
+    for root, dirs, files in os.walk(dir_name):
+        file_list = '\n'.join( [ os.path.join(root, filename) for filename in files] )
+    return file_list
+
 class ScriptRunningError(Exception):
     pass
 
@@ -169,13 +189,19 @@ def makeDir(dname):
 
 def main():
 
-    pair_filepath = create_pair_path("/data/LS2402-PDIS9009/")
-    output_dir = "/data/LS2402-PDIS9009/" + "merged_fastq" + datetime + "/"
-    makeDir(output_dir)
-    ret_fastq_list = merge_pair_fastq(pair_filepath, output_dir)
-    new_lib_id = create_datalib("Test data library" + datetime)
-    import_data(new_lib_id, ret_fastq_list)
-
+    if os.path.exists(import_dir) is False:
+        raise Exception, import_dir + ' is not found.'
+    
+    pair_filepath = create_pair_path(import_dir)
+    if not pair_filepath == "":
+        output_dir = import_dir + "merged_fastq" + datetime + "/"
+        makeDir(output_dir)
+        ret_file_list = merge_pair_fastq(pair_filepath, output_dir)
+    else:
+        ret_file_list = get_import_files(import_dir)
+    
+    new_lib_id = create_datalib(lib_name + "_" + datetime)
+    import_data(new_lib_id, ret_file_list)
 
 if __name__ == '__main__':
         main()

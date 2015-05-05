@@ -500,7 +500,7 @@ o.close()
         if self.useGM:        
             cl2 = ['gm', 'convert', inpdf, outpng]
         else: # assume imagemagick
-            cl2 = ['convert', inpdf, outpng]
+            cl2 = ['convert', inpdf + '[0]', outpng]
         x = subprocess.Popen(cl2,stdout=sto,stderr=sto,cwd=self.opts.output_dir,env=our_env)
         retval2 = x.wait()
         sto.close()
@@ -557,11 +557,11 @@ o.close()
             logfiles = [x for x in logfiles if os.path.abspath(x) <> os.path.abspath(self.tlog)]
             logfiles.append(os.path.abspath(self.tlog)) # make it the last one
             pdflist = []
-            npdf = len([x for x in flist if os.path.splitext(x)[-1].lower() == '.pdf'])
+            npdf = len([x for x in flist if os.path.splitext(x)[-1].lower() == '.pdf' or os.path.splitext(x)[-1].lower() == '.png'])
             for rownum,fname in enumerate(flist):
                 dname,e = os.path.splitext(fname)
                 sfsize = self.getfSize(fname,self.opts.output_dir)
-                if e.lower() == '.pdf' : # compress and make a thumbnail
+                if e.lower() == '.pdf' or e.lower() == '.png' : # compress and make a thumbnail
                     thumb = '%s.%s' % (dname,self.thumbformat)
                     pdff = os.path.join(self.opts.output_dir,fname)
                     retval = self.compressPDF(inpdf=pdff,thumbformat=self.thumbformat)
@@ -616,15 +616,15 @@ o.close()
                         if ntogo > 0: # pad
                            html.append('<td>&nbsp;</td>'*ntogo)
                         html.append('</tr></table></div>\n')
-                logt = open(logfname,'r').readlines()
-                logtext = [x for x in logt if x.strip() > '']
-                html.append('<div class="toolFormTitle">%s log output</div>' % sectionname)
-                if len(logtext) > 1:
-                    html.append('\n<pre>\n')
-                    html += logtext
-                    html.append('\n</pre>\n')
-                else:
-                    html.append('%s is empty<br/>' % logfname)
+                #logt = open(logfname,'r').readlines()
+                #logtext = [x for x in logt if x.strip() > '']
+                #html.append('<div class="toolFormTitle">%s log output</div>' % sectionname)
+                #if len(logtext) > 1:
+                #    html.append('\n<pre>\n')
+                #    html += logtext
+                #    html.append('\n</pre>\n')
+                #else:
+                #    html.append('%s is empty<br/>' % logfname)
         if len(fhtml) > 0:
            fhtml.insert(0,'<div><table class="colored" cellpadding="3" cellspacing="3"><tr><th>Output File Name (click to view)</th><th>Size</th></tr>\n')
            fhtml.append('</table></div><br/>')

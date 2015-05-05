@@ -3,16 +3,15 @@
 
 <command interpreter="python">
 
-        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" 
-            --tool_name "SummaryOfReadQC" --input_tab "$input1"   --output_dir "./" --output_tab "$tab_file" 
+        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input1" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
-<param name="input1"  type="data" format="None" label="Select a suitable input file from your history"/> 
-<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
-
+    <param name="input1"  type="data" format="None" label="Select a suitable input file from your history"/> 
+    <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
 </inputs>
 <outputs>
     <data format="tabular" name="tab_file" label="${job_name}"/>
+    <data format="html" name="html_file" label="${job_name}.html"/>
 </outputs>
 <configfiles>
 <configfile name="runMe">
@@ -20,6 +19,7 @@ library("dplyr")
 library("plyr")
 library("tidyr")
 library("stringr")
+library("ggplot2")
 
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
@@ -49,6 +49,13 @@ outp &lt;- data.frame(file_name,total_seq,per_GC)
 outp &lt;- outp[-1,]
 summary(outp)
 cat("\n")
+
+ggplot(outp, aes(per_GC, total_seq)) + 
+  geom_point(size=3, alpha=0.7, aes(colour=ifelse(total_seq &gt; 2000000 &amp; total_seq &lt; 4500000, 'red', 'blue'))) +
+  geom_text(aes(label=ifelse(total_seq &gt; 2000000 &amp; total_seq &lt;4500000, "", as.character(file_name))),size=4,hjust=1.0,vjust=1.0) + 
+  theme(legend.position="none")
+
+ggsave(file="fastqc_result.png", width=7, height=9, dpi=100)
 
 write.table(outp, outf, quote=F, sep="\t", row.names=F, append=F)
 
