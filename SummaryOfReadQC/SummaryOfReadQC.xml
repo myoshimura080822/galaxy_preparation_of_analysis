@@ -34,19 +34,20 @@ head(path_list)
 data &lt;- ldply(
   as.character(path_list[["file_name"]]),
   function(x){
-    data.frame(filename=basename(x),
+    data.frame(sample_name = subset(path_list, file_name == x, select = sample_name),
                str_split_fixed(matrix(scan(x, what = character(), sep = "\n", nlines = 7, skip = 3), 7, byrow=T), "\\t", 2))
   }
-) %&gt;% spread(filename,X2)
+) %&gt;% spread(sample_name,X2)
 
 rownames(data) &lt;- sub(" ", "_", data\$X1)
-rownames(data)
+data &lt;- data[, colnames(data) != "X1"]
 
-file_name = str_sub(as.character(unname(unlist(data["Filename",]))), start = 1, end = 17)
+#file_name = str_sub(as.character(unname(unlist(data["Filename",]))), start = 1, end = 17)
+file_name = unlist(colnames(data))
 total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
 per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
 outp &lt;- data.frame(file_name,total_seq,per_GC)
-outp &lt;- outp[-1,]
+#outp &lt;- outp[-1,]
 summary(outp)
 cat("\n")
 

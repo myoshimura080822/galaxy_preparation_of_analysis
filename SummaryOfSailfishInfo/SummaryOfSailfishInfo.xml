@@ -36,12 +36,11 @@ head(path_list)
 data &lt;- ldply(
   as.character(path_list[["file_name"]]),
   function(x){
-    data.frame(filename=subset(path_list, file_name==x, select=name),
+    data.frame(filename=subset(path_list, file_name==x, select=sample_name),
                str_split_fixed(matrix(scan(x, what = character(), sep = "\n", nlines = 4), 4, byrow=T), "\\t", 2))
   }
-)  %&gt;% separate(name, c("dataset", "dummy"), ":", remove=TRUE) %&gt;% .[, colnames(.) != "dummy"]  %&gt;% spread(dataset, X2)
+)  %&gt;% spread(sample_name, X2)
 
-colnames(data) &lt;- gsub(" ", "_", colnames(data))
 rownames(data) &lt;- data\$X1
 data &lt;- data[, colnames(data) != "X1"]
 
