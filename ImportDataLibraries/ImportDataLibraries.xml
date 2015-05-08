@@ -40,6 +40,10 @@ print u"import_dir: " + import_dir
 print u"lib_name: " + lib_name
 print u"outp: " + outp
 
+if not import_dir.endswith('/'):
+    import_dir = import_dir + '/'
+    print import_dir
+
 print pwd.getpwuid(os.getuid())[0]
 print os.getcwd()
 print u"ImportDataLibraries.py Started......"
@@ -98,23 +102,23 @@ def create_pair_path(root_dir):
     for root, dirs, files in os.walk(root_dir):
         #first = os.path.basename(os.path.normpath(root))
         dirname = os.path.dirname(root)
-
-        if "Project" in dirname:
-            file_list = [os.path.join(root, filename) for filename in files if 'fastq.gz' in filename]
-            #path_list[len(path_list):len(path_list)] = file_list
-            path_list[os.path.basename(dirname)] = file_list[0]
-        else:
-            print "this dir files is not-Hiseq reads."
-            return ""
+        #print dirname
+        #print files
+        if len(files) > 0:
+            file_list = [os.path.join(root, filename) for filename in files if 'fastq.gz' in filename and 'L00' in filename]
+            if len(file_list) > 0:
+                path_list[os.path.basename(dirname)] = file_list[0]
+    
+    if len(path_list) == 0:
+        print "can't create pair list in input-dir."
+        return ""
 
     keys_list = path_list.keys()
     lane_01 = list(path_list[keys_list[0]])
     lane_01.sort()
-    #print lane_01
     print len(lane_01)
     lane_02 = list(path_list[keys_list[1]])
     lane_02.sort()
-    #print lane_02
     print len(lane_02)
 
     pair_filepath = [[f1, [f2 for f2 in lane_02 if str(os.path.basename(f1)).replace("L001","L002") in f2][0]] for f1 in lane_01]
@@ -148,7 +152,7 @@ def merge_pair_fastq(list, outdir):
 
 def get_import_files(dir_name):
     for root, dirs, files in os.walk(dir_name):
-        file_list = '\n'.join( [ os.path.join(root, filename) for filename in files] )
+        file_list = '\n'.join( [ os.path.join(root, filename) for filename in files if '.fastq' in filename] )
     return file_list
 
 class ScriptRunningError(Exception):
@@ -204,8 +208,7 @@ def main():
     import_data(new_lib_id, ret_file_list)
 
 if __name__ == '__main__':
-        main()
-
+    main()
 
 </configfile>
 </configfiles>
