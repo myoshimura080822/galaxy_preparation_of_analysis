@@ -51,7 +51,7 @@ plot_info = data.frame(dset_name,total_reads,mapped_ratio)
 
 ggplot(plot_info, aes(mapped_ratio,total_reads)) + 
   geom_point(size=3, alpha=0.7, aes(colour=ifelse(mapped_ratio&lt;0.75, 'red','blue'))) +
-  geom_text(aes(label=ifelse(mapped_ratio&gt;0.75,'',as.character(dset_name))),size=4,hjust=0.0,vjust=1.0, angle=45) +
+  geom_text(aes(label=ifelse(mapped_ratio&gt;0.80,'',as.character(dset_name))),size=4,hjust=0.0,vjust=1.0, angle=45) +
   theme(legend.position="none")
 
 ggsave(file="sailfish_result.png", width=10, height=8, dpi=100)
