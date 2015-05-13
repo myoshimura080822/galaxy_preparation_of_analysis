@@ -47,16 +47,37 @@ file_name = unlist(colnames(data))
 total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
 per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
 outp &lt;- data.frame(file_name,total_seq,per_GC)
-#outp &lt;- outp[-1,]
+
+outp\$cell_type &lt;- str_split_fixed(outp\$file_name, "_", 3)[,1]
+outp\$well &lt;- str_split_fixed(outp\$file_name, "_", 3)[,3]
 summary(outp)
 cat("\n")
 
-ggplot(outp, aes(per_GC, total_seq)) + 
-  geom_point(size=3, alpha=0.7, aes(colour=ifelse(total_seq &gt; 2000000 &amp; total_seq &lt; 4500000, 'red', 'blue'))) +
-  geom_text(aes(label=ifelse(total_seq &gt; 2000000 &amp; total_seq &lt;4500000, "", as.character(file_name))),size=4,hjust=1.0,vjust=1.0) + 
-  theme(legend.position="none")
+CIset &lt;- function(x, y, g, w, conf){
+  data.frame(x=x, y=y, cell_type=g, well=w,
+             upper = mean(y)+qt(conf,length(y)-1)*sd(y)/sqrt(length(y)),
+             lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y)))
+}
 
-ggsave(file="fastqc_result.png", width=7, height=9, dpi=100)
+plot_tseq &lt;- CIset(outp\$file_name, log10(outp\$total_seq), outp\$cell_type, outp\$well, 0.99)
+
+plot_t &lt;- ggplot(plot_tseq, aes(x=x,y=y)) +
+  geom_point(size=3, alpha=0.7, aes(colour=cell_type)) +
+  geom_text(aes(label=ifelse(y&lt;upper+0.1 &amp; y&gt;lower-0.1, "", as.character(plot_tseq\$well))), size=4, hjust=0.0, vjust=1.0) +
+  geom_smooth(method="lm", se=FALSE, aes(group=cell_type)) +
+  geom_ribbon(aes(ymin=lower, ymax=upper, group=cell_type, fill=cell_type), alpha=0.25) +
+  scale_y_continuous(limits=c(min(plot_tseq\$y) -0.5, max(plot_tseq\$y) +0.5)) +
+  xlab("Sample")+ylab("TotalSeq(log10)")+theme(axis.text.x=element_blank())
+
+plot_gc &lt;- ggplot(outp, aes(file_name,per_GC)) +
+  geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
+  ylim(0, 100) +
+  xlab("Sample")+ylab("%GC") +
+  scale_x_discrete(labels=outp\$well) + 
+  theme(axis.text.x=element_text(size=8, angle=90))
+
+ggsave(file="fastqc_totalseq.png", plot=plot_t, width=12, height=5, dpi=100)
+ggsave(file="fastqc_perGC.png", plot=plot_gc, width=12, height=5, dpi=100)
 
 write.table(outp, outf, quote=F, sep="\t", row.names=F, append=F)
 

@@ -47,15 +47,32 @@ data &lt;- data[, colnames(data) != "X1"]
 dset_name = unlist(colnames(data))
 total_reads = as.numeric(as.character(unname(unlist(data[3,]))))
 mapped_ratio = as.numeric(as.character(unname(unlist(data[2,]))))
-plot_info = data.frame(dset_name,total_reads,mapped_ratio)
+outp = data.frame(dset_name,total_reads,mapped_ratio)
+outp\$cell_type &lt;- str_split_fixed(outp\$dset_name, "_", 3)[,1]
+outp\$well &lt;- str_split_fixed(outp\$dset_name, "_", 3)[,3]
+head(outp)
 
-ggplot(plot_info, aes(mapped_ratio,total_reads)) + 
-  geom_point(size=3, alpha=0.7, aes(colour=ifelse(mapped_ratio&lt;0.75, 'red','blue'))) +
-  geom_text(aes(label=ifelse(mapped_ratio&gt;0.80,'',as.character(dset_name))),size=4,hjust=0.0,vjust=1.0, angle=45) +
-  theme(legend.position="none")
+CIset &lt;- function(y,conf){
+  data.frame(upper = mean(y)+qt(conf,length(y)-1)*sd(y)/sqrt(length(y)),
+             lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y))
+             )
+}
+ciset &lt;- CIset(outp\$mapped_ratio, 0.99)
+lower &lt;- round(as.numeric(ciset\$lower,2),2)
 
-ggsave(file="sailfish_result.png", width=10, height=8, dpi=100)
-write.table(plot_info, outf, quote=F, sep="\t", append=F)
+ggplot(outp, aes(dset_name, mapped_ratio)) +
+  layer(data=outp, 
+        mapping=aes(x=dset_name, y=1, fill=cell_type), 
+        geom="bar", stat="identity", position="identity", alpha=0.25) +
+  geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
+  ylim(0, 1) +
+  xlab("Sample")+ylab("Mapped Ratio") +
+  scale_x_discrete(labels=outp\$well) + 
+  theme(axis.text.x=element_text(size=8, angle=90)) + 
+  geom_text(aes(label=ifelse(outp\$mapped_ratio &gt; lower, "", as.character(round(outp\$mapped_ratio, 2)))), size=3, hjust=0.0, vjust=1.0)
+
+ggsave(file="sailfish_result.png", width=12, height=5, dpi=100)
+write.table(outp, outf, quote=F, sep="\t", append=F)
 
 cat("....All Done. End of Script\n")
 </configfile>
