@@ -202,7 +202,8 @@ class ScriptRunner:
             a(self.sfile)
         else:
             a('-') # stdin
-        a(opts.input_tab)
+        a(opts.input_fastqc)
+        a(opts.input_sailfish)
         a(opts.output_tab)
         self.outputFormat = self.opts.output_format
         self.inputFormats = self.opts.input_formats 
@@ -713,7 +714,8 @@ def main():
     a('--interpreter',default=None)
     a('--output_dir',default='./')
     a('--output_html',default=None)
-    a('--input_tab',default="None")
+    a('--input_fastqc',default="None")
+    a('--input_sailfish',default="None")
     a('--input_formats',default="tabular,text")
     a('--output_tab',default="None")
     a('--output_format',default="tabular")
