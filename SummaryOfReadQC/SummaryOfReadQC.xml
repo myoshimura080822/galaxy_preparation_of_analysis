@@ -3,7 +3,7 @@
 
 <command interpreter="python">
 
-        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_fastqc "$input_fastqc" --input_sailfish "$input_sailfish" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
+        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input_fastqc" --input_sailfish "$input_sailfish" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
     <param name="input_fastqc"  type="data" format="None" label="Select a 'GetFastQCRawDataFiles' output file from your history"/> 
