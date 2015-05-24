@@ -90,7 +90,7 @@ Plot_cor(celltype, fdata)
 
 d = dist(fdata[, colnames(fdata) != "celltype"])
 result = pvclust(data.matrix(d), method.dist="euclidean", method.hclust="ward", nboot=1000)
-png("output_pvclust_result.png", width=1200, height=800)
+png("output_pvclust_result.png", width=1200, height=600)
 plot(result)
 pvrect(result, alpha=.95)
 dev.off()
