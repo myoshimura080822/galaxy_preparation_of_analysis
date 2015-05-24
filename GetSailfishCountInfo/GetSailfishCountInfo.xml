@@ -16,7 +16,7 @@
     </param>
 </inputs>
 <outputs>
- <data format="tabular" name="tab_file" label="${job_name}"/>
+ <data format="tabular" name="tab_file" label="${job_name} on ${on_string}"/>
 
 </outputs>
 <configfiles>

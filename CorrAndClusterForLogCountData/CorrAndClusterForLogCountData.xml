@@ -1,0 +1,201 @@
+<tool id="CorrAndClusterForLogCountData" name="CorrAndClusterForLogCountData" version="0.01">
+
+
+<command interpreter="python">
+
+        CorrAndClusterForLogCountData.py --script_path "$runMe" --interpreter "Rscript" 
+            --tool_name "CorrAndClusterForLogCountData" --input_tab "$input1"  --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_tab2 "$tab_file2" --output_html "$html_file" --make_HTML "yes" 
+</command>
+<inputs>
+<param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="CorrAndClusterForLogCountData"/> 
+</inputs>
+<outputs>
+ <data format="tabular" name="tab_file" label="${job_name} on ${on_string}_corr01"/>
+ <data format="tabular" name="tab_file2" label="${job_name} on ${on_string}_corr02"/>
+ <data format="html" name="html_file" label="${job_name} on ${on_string}_output.html"/>
+</outputs>
+<configfiles>
+<configfile name="runMe">
+library("matrixStats")
+library("stringr")
+library("pvclust")
+library("ggplot2")
+
+cat("CorrAndClusterForLogCountData Started......\n")
+cat("\n")
+
+ourargs = commandArgs(TRUE)
+inf = ourargs[1]
+outf = ourargs[2]
+outf2 = ourargs[3]
+cat("input file name:");inf
+cat("output file name(1):");outf
+cat("output file name(2):");outf2
+cat("\n")
+
+outp = read.table(inf, sep="\t", comment.char = "", header=T)
+rownames(outp) = outp[,1]
+outp = outp[, -1]
+outp = outp[, order(names(outp))]
+celltype = as.data.frame(str_split(colnames(outp), "_"))
+celltype = factor(sort(unname(unlist(celltype[1,]))))
+
+matrix = data.matrix(outp)
+idx = rowVars(matrix) == 0
+fmatrix = matrix[!idx,]
+fmatrix = log10(fmatrix + 1)
+
+fdata = data.frame(t(fmatrix))
+nrow(fdata);ncol(fdata)
+fdata\$celltype = as.character(celltype)
+
+CIset = function(x, y, conf){
+  data.frame(x=x, y=y,
+             upper = mean(y)+qt(conf,length(y)-1)*sd(y)/sqrt(length(y)),
+             lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y)))
+}
+
+count = 0
+Plot_cor = function(celltype, fdata){
+  for ( i in levels(celltype) ) {
+    cor_i = fdata[fdata\$celltype==i,]
+    nrow(cor_i);nrow(cor_i)
+    cor_i = data.frame(t(data.matrix(cor_i[, colnames(cor_i) != "celltype"])))
+    ret_cor = cor(cor_i)
+
+    outf = ifelse(count==0, outf, outf2)
+    write.table(ret_cor, outf, quote=FALSE, sep="\t")
+
+    ret_cor_m = data.frame(Means=rowMeans(ret_cor))
+    ret_cor_m_ci = CIset(rownames(ret_cor_m), round(ret_cor_m\$Means, digits=3), 0.99)
+
+    plot_cor = ggplot(ret_cor_m_ci, aes(x=x,y=y)) +
+      geom_point(size=3, alpha=0.7) +
+      geom_text(aes(label=ifelse(y&lt;upper &amp; y&gt;lower, "", as.character(y))), size=4, hjust=0.0, vjust=1.0) +
+      geom_smooth(method="lm", se=FALSE, aes(group=1)) +
+      geom_ribbon(aes(ymin=lower, ymax=upper, group=1), alpha=0.25) +
+      scale_y_continuous(limits=c(min(ret_cor_m_ci\$y) -0.1, max(ret_cor_m_ci\$y) +0.1)) +
+      theme(axis.text.x=element_text(size=8, angle=90)) +
+      xlab("Sample")+ylab("Cor Means")
+
+    fname = str_c("output_corr_result_", as.character(i), ".png", sep = "")
+    ggsave(file=fname, plot=plot_cor, width=12, height=5, dpi=100)
+    
+    count = count+1
+  }
+}
+
+Plot_cor(celltype, fdata)
+
+d = dist(fdata[, colnames(fdata) != "celltype"])
+result = pvclust(data.matrix(d), method.dist="euclidean", method.hclust="ward", nboot=1000)
+png("output_pvclust_result.png", width=1200, height=800)
+plot(result)
+pvrect(result, alpha=.95)
+dev.off()
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="CorrAndClusterForLogCountData_test1_input.xls" ftype="tabular"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="CorrAndClusterForLogCountData_test1_output.xls" ftype="tabular"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ library("matrixStats")
+ library("stringr")
+ library("pvclust")
+ library("ggplot2")
+ 
+ cat("CorrAndClusterForLogCountData Started......\n")
+ cat("\n")
+ 
+ ourargs = commandArgs(TRUE)
+ inf = ourargs[1]
+ outf = ourargs[2]
+ cat("input file name:");inf
+ cat("output file name:");outf
+ cat("\n")
+ 
+ outp = read.table(inf, sep="\t", comment.char = "", header=T)
+ rownames(outp) = outp[,1]
+ outp = outp[, -1]
+ outp = outp[, order(names(outp))]
+ celltype = as.data.frame(str_split(colnames(outp), "_"))
+ celltype = factor(sort(unname(unlist(celltype[1,]))))
+ 
+ matrix = data.matrix(outp)
+ idx = rowVars(matrix) == 0
+ fmatrix = matrix[!idx,]
+ fmatrix = log10(fmatrix + 1)
+ 
+ fdata = data.frame(t(fmatrix))
+ nrow(fdata);ncol(fdata)
+ fdata\$celltype = as.character(celltype)
+ 
+ CIset = function(x, y, conf){
+   data.frame(x=x, y=y,
+              upper = mean(y)+qt(conf,length(y)-1)*sd(y)/sqrt(length(y)),
+              lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y)))
+ }
+ 
+ Plot_cor = function(celltype, fdata){
+   for ( i in levels(celltype) ) {
+     cor_i = fdata[fdata\$celltype==i,]
+     nrow(cor_i);nrow(cor_i)
+     cor_i = data.frame(t(data.matrix(cor_i[, colnames(cor_i) != "celltype"])))
+     ret_cor = cor(cor_i)
+ 
+     write.table(ret_cor, outf, quote=FALSE, sep="\t")
+ 
+     ret_cor_m = data.frame(Means=rowMeans(ret_cor))
+     ret_cor_m_ci = CIset(rownames(ret_cor_m), round(ret_cor_m\$Means, digits=3), 0.99)
+ 
+     plot_cor = ggplot(ret_cor_m_ci, aes(x=x,y=y)) +
+       geom_point(size=3, alpha=0.7) +
+       geom_text(aes(label=ifelse(y&lt;upper &amp; y&gt;lower, "", as.character(y))), size=4, hjust=0.0, vjust=1.0) +
+       geom_smooth(method="lm", se=FALSE, aes(group=1)) +
+       geom_ribbon(aes(ymin=lower, ymax=upper, group=1), alpha=0.25) +
+       scale_y_continuous(limits=c(min(ret_cor_m_ci\$y) -0.1, max(ret_cor_m_ci\$y) +0.1)) +
+       theme(axis.text.x=element_text(size=8, angle=90)) +
+       xlab("Sample")+ylab("Cor Means")
+   }
+ }
+ 
+ Plot_cor(celltype, fdata)
+ 
+ d = dist(fdata[, colnames(fdata) != "celltype"])
+ result = pvclust(data.matrix(d), method.dist="euclidean", method.hclust="ward", nboot=1000)
+ plot(result)
+ pvrect(result, alpha=.95)
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 24/05/2015 08:31:39
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>

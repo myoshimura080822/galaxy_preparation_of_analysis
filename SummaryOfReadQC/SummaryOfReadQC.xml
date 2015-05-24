@@ -11,8 +11,8 @@
     <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
 </inputs>
 <outputs>
-    <data format="tabular" name="tab_file" label="${job_name}"/>
-    <data format="html" name="html_file" label="${job_name}.html"/>
+    <data format="tabular" name="tab_file" label="${job_name} on ${on_string}"/>
+    <data format="html" name="html_file" label="${job_name} on ${on_string}.html"/>
 </outputs>
 <configfiles>
 <configfile name="runMe">

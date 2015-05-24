@@ -1,0 +1,104 @@
+<tool id="DropColumnsByName" name="DropColumnsByName" version="0.01">
+
+
+<command interpreter="python">
+
+        DropColumnsByName.py --script_path "$runMe" --interpreter "Rscript" 
+            --tool_name "DropColumnsByName" --input_tab "$input1" --input_cut "$input_cut" --output_dir "./" --output_tab "$tab_file" 
+</command>
+<inputs>
+<param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="DropColumnsByName"/> 
+<param name="input_cut" size="50" type="text" label="Selects (cuts out) specified columns name from the input-dataset (e.g., name1,name2)" value="">
+  <validator type="empty_field" message="No API_KEY is available for the input text form"/>
+</param>
+</inputs>
+<outputs>
+ <data format="tabular" name="tab_file" label="${job_name} on ${on_string}"/>
+</outputs>
+<configfiles>
+<configfile name="runMe">
+library("stringr")
+
+cat("DropColumnsByName Started......\n")
+cat("\n")
+
+ourargs = commandArgs(TRUE)
+inf = ourargs[1]
+input_cut = ourargs[2]
+outf = ourargs[3]
+cat("input file name:");inf
+cat("input cutting column name:");input_cut
+cat("output file name:");outf
+cat("\n")
+
+outp = read.table(inf, sep="\t", comment.char = "", header=T)
+ncol(outp)
+trim = str_trim(unlist(strsplit(input_cut, ",")))
+trim
+outp = outp[, !(colnames(outp) %in% trim)]
+ncol(outp)
+write.table(outp, outf, quote=FALSE, sep="\t",row.names=F)
+
+cat("....All Done. End of Script\n")
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="DropColumnsByName_test1_input.xls" ftype="tabular"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="DropColumnsByName_test1_output.xls" ftype="tabular"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ library("stringr")
+ 
+ cat("DropColumnsByName Started......\n")
+ cat("\n")
+ 
+ ourargs = commandArgs(TRUE)
+ inf = ourargs[1]
+ outf = ourargs[2]
+ cat("input file name:");inf
+ cat("output file name:");outf
+ cat("\n")
+ 
+ outp = read.table(inf, sep="\t", comment.char = "", header=T)
+ ncol(outp)
+ teststr = "mES_EBI141225_C04,  mES_EBI141225_D04, PrE_EBI141225_A01    , PrE_EBI141225_A03, PrE_EBI141225_B03     "
+ trim = str_trim(unlist(strsplit(teststr, ",")))
+ trim
+ outp = outp[, !(colnames(outp) %in% trim)]
+ ncol(outp)
+ write.table(outp, outf, quote=FALSE, sep="\t",row.names=F)
+ 
+ cat("....All Done. End of Script\n")
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 24/05/2015 09:47:31
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>
