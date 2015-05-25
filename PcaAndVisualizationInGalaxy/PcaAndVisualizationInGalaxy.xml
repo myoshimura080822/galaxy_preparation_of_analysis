@@ -1,0 +1,203 @@
+<tool id="PcaAndVisualizationInGalaxy" name="PcaAndVisualizationInGalaxy" version="0.01">
+
+<command interpreter="python">
+        PcaAndVisualizationInGalaxy.py --script_path "$runMe" --interpreter "Rscript" 
+            --tool_name "PcaAndVisualizationInGalaxy" --input_tab "$input1" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_tab2 "$tab_file2" --output_html "$html_file" --make_HTML "yes" 
+</command>
+<inputs>
+<param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
+<param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="PcaAndVisualizationInGalaxy"/> 
+
+</inputs>
+<outputs>
+ <data format="tabular" name="tab_file" label="${job_name} on ${on_string}_eigenvectors"/>
+ <data format="tabular" name="tab_file2" label="${job_name} on ${on_string}_eigenvalues_and_variances"/>
+  <data format="html" name="html_file" label="${job_name} on ${on_string}_output.html"/>
+</outputs>
+<configfiles>
+<configfile name="runMe">
+library("matrixStats")
+library("stringr")
+library("ggplot2")
+library("factoextra")
+options(rgl.useNULL=TRUE)
+library("rgl")
+
+cat("PcaAndVisualizationInGalaxy Started......\n")
+cat("\n")
+
+ourargs = commandArgs(TRUE)
+inf = ourargs[1]
+outf = ourargs[2]
+outf2 = ourargs[3]
+cat("input file name:");inf
+cat("output file name(1):");outf
+cat("output file name(2):");outf2
+cat("\n")
+
+outp = read.table(inf, sep="\t", comment.char = "", header=T)
+rownames(outp) = outp[,1]
+outp = outp[, -1]
+outp = outp[, order(names(outp))]
+celltype = as.data.frame(str_split(colnames(outp), "_"))
+celltype = factor(sort(unname(unlist(celltype[1,]))))
+
+matrix = data.matrix(outp)
+idx = rowVars(matrix) == 0
+fmatrix = matrix[!idx,]
+fmatrix = log10(fmatrix + 1)
+
+fdata = data.frame(t(fmatrix))
+geneno = nrow(fdata)
+nrow(fdata);ncol(fdata)
+fdata\$celltype &lt;- celltype
+
+ret_pca = prcomp(t(fmatrix), scale = FALSE, center = TRUE)
+
+screeplot = fviz_screeplot(ret_pca, ncp=nrow(fdata), addlabels=F) + theme_minimal()
+ggsave(file="scree_plot.pdf", plot=screeplot, dpi=100, width = 14, height = 6)
+
+# 2D output
+fdata2 = fdata[, colnames(fdata) != "celltype"]
+max_val = max(c(max(abs(ret_pca\$x[,1])), max(abs(ret_pca\$x[,2])))) + 5
+graph_of_ind = fviz_pca_ind(ret_pca, data=fdata2, habillage=fdata\$celltype, addEllipses=TRUE, ellipse.level=0.95) + xlim(-max_val, max_val) + ylim (-max_val, max_val)
+ggsave(file="graph_of_ind_2D.pdf", plot=graph_of_ind, dpi=100, width=8.5, height=8)
+
+# 3D output
+fdata\$well = str_split_fixed(rownames(fdata), "_", 3)[,3]
+fdata\$type = as.character(fdata\$celltype)
+cellinfo = data.frame(type=fdata\$type, well=fdata\$well)
+cellinfo = within(cellinfo, sample_name &lt;- paste(type, well, sep="_"))
+fdata\$sample_name = cellinfo\$sample_name
+plot3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], xlab="Component 1", ylab="Component 2",
+       zlab="Component 3", box=FALSE, size=8, col=as.integer(fdata\$celltype))
+text3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], as.vector(fdata\$sample_name), cex=1.0, adj=1)
+writeWebGL(dir=getwd(), width=600, height=600)
+
+# Eigenvectors
+eigv = ret_pca\$rotation
+write.table(eigv, outf, quote=FALSE, sep="\t")
+
+# Eigenvalues
+eig = (ret_pca\$sdev)^2
+# Variances in percentage
+variance = eig*100/sum(eig)
+# Cumulative variances
+cumvar = cumsum(variance)
+length(eig)
+eig_dataf = data.frame(row.names=sprintf("PC%d", 1:length(eig)),
+                        eigenvalues=eig, variance=round(variance,digits=3), cumvariance = cumvar)
+write.table(eig_dataf, outf2, quote=FALSE, sep="\t")
+
+
+</configfile>
+</configfiles>
+
+
+        <tests>
+        <test>
+        <param name="input1" value="PcaAndVisualizationInGalaxy_test1_input.xls" ftype="tabular"/>
+        <param name="job_name" value="test1"/>
+        <param name="runMe" value="$runMe"/>
+        <output name="tab_file" file="PcaAndVisualizationInGalaxy_test1_output.xls" ftype="tabular"/>
+        </test>
+        </tests>
+        
+
+<help>
+
+
+**What it Does**
+
+**Script**
+Pressing execute will run the following code over your input file and generate some outputs in your history::
+
+
+ library("matrixStats")
+ library("stringr")
+ library("ggplot2")
+ library("factoextra")
+ options(rgl.useNULL=TRUE)
+ library("rgl")
+ 
+ cat("PcaAndVisualizationInGalaxy Started......\n")
+ cat("\n")
+ 
+ ourargs = commandArgs(TRUE)
+ inf = ourargs[1]
+ outf = ourargs[2]
+ cat("input file name:");inf
+ cat("output file name:");outf
+ cat("\n")
+ 
+ outp = read.table(inf, sep="\t", comment.char = "", header=T)
+ rownames(outp) = outp[,1]
+ outp = outp[, -1]
+ outp = outp[, order(names(outp))]
+ celltype = as.data.frame(str_split(colnames(outp), "_"))
+ celltype = factor(sort(unname(unlist(celltype[1,]))))
+ 
+ matrix = data.matrix(outp)
+ idx = rowVars(matrix) == 0
+ fmatrix = matrix[!idx,]
+ fmatrix = log10(fmatrix + 1)
+ 
+ fdata = data.frame(t(fmatrix))
+ geneno = nrow(fdata)
+ nrow(fdata);ncol(fdata)
+ fdata\$celltype &lt;- celltype
+ 
+ ret_pca = prcomp(t(fmatrix), scale = FALSE, center = TRUE)
+ 
+ screeplot = fviz_screeplot(ret_pca, ncp=nrow(fdata), addlabels=F) + theme_minimal()
+ ggsave(file="scree_plot.png", plot=screeplot, dpi=100)
+ 
+ # 2D output
+ fdata2 = fdata[, colnames(fdata) != "celltype"]
+ graph_of_ind = fviz_pca_ind(ret_pca, data=fdata2, habillage=fdata\$celltype, addEllipses=TRUE, ellipse.level=0.95)
+ ggsave(file="graph_of_ind_2D.png", plot=graph_of_ind, dpi=100)
+ 
+ # 3D output
+ fdata\$well = str_split_fixed(rownames(fdata), "_", 3)[,3]
+ fdata\$type = as.character(fdata\$celltype)
+ cellinfo = data.frame(type=fdata\$type, well=fdata\$well)
+ cellinfo = within(cellinfo, sample_name &lt;- paste(type, well, sep="_"))
+ fdata\$sample_name = cellinfo\$sample_name
+ plot3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], xlab="Component 1", ylab="Component 2",
+        zlab="Component 3", box=FALSE, size=8, col=as.integer(fdata\$celltype))
+ text3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], as.vector(fdata\$sample_name), cex=1.0, adj=1)
+ writeWebGL(width=600, height=600)
+ 
+ # Eigenvalues
+ eig = (ret_pca\$sdev)^2
+ # Variances in percentage
+ variance = eig*100/sum(eig)
+ # Cumulative variances
+ cumvar = cumsum(variance)
+ length(eig)
+ eig_dataf = data.frame(row.names=sprintf("PC%d", 1:length(eig)),
+                         eigenvalues=eig, variance=round(variance,digits=3), cumvariance = cumvar)
+ 
+ write.table(eig_dataf, outf, quote=FALSE, sep="\t")
+ 
+ # Eigenvectors
+ eigv = ret_pca\$rotation
+ head(eigv)
+ 
+ #write.table(eig_dataf, outf, quote=FALSE, sep="\t",row.names=F)
+
+**Attribution**
+This Galaxy tool was created by admin@galaxy.org at 25/05/2015 03:53:24
+using the Galaxy Tool Factory.
+
+See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
+Please cite: Creating re-usable tools from scripts: The Galaxy Tool Factory. Ross Lazarus; Antony Kaspi; Mark Ziemann; The Galaxy Team. 
+Bioinformatics 2012; doi: 10.1093/bioinformatics/bts573
+
+
+</help>
+<citations>
+    
+    <citation type="doi">10.1093/bioinformatics/bts573</citation>
+</citations>
+</tool>
