@@ -135,7 +135,7 @@ head(merge_d)
 
 pairsD3(merge_d[,1:3], group=merge_d\$cell_type, labels=c("Total Seq(Log)", "%GC", "Mapped Ratio"), cex=5, leftmar=40, topmar=15) %&gt;% savePairs(file = "fastqc_and_sailfish_result.html")
 
-write.table(merge_d, outf, quote=F, sep="\t", row.names=F, append=F)
+write.table(merge_d, outf, quote=F, sep="\t")
 
 cat("....All Done. End of Script\n")
 </configfile>
