@@ -1,5 +1,5 @@
 <tool id="CorrAndClusterForLogCountData" name="CorrAndClusterForLogCountData" version="0.01">
-
+<description>assessing correlations and hierarchical cluster analysis for count data</description>
 
 <command interpreter="python">
 
@@ -110,82 +110,10 @@ dev.off()
 
 <help>
 
-
-**What it Does**
-
-**Script**
-Pressing execute will run the following code over your input file and generate some outputs in your history::
-
-
- library("matrixStats")
- library("stringr")
- library("pvclust")
- library("ggplot2")
- 
- cat("CorrAndClusterForLogCountData Started......\n")
- cat("\n")
- 
- ourargs = commandArgs(TRUE)
- inf = ourargs[1]
- outf = ourargs[2]
- cat("input file name:");inf
- cat("output file name:");outf
- cat("\n")
- 
- outp = read.table(inf, sep="\t", comment.char = "", header=T)
- rownames(outp) = outp[,1]
- outp = outp[, -1]
- outp = outp[, order(names(outp))]
- celltype = as.data.frame(str_split(colnames(outp), "_"))
- celltype = factor(sort(unname(unlist(celltype[1,]))))
- 
- matrix = data.matrix(outp)
- idx = rowVars(matrix) == 0
- fmatrix = matrix[!idx,]
- fmatrix = log10(fmatrix + 1)
- 
- fdata = data.frame(t(fmatrix))
- nrow(fdata);ncol(fdata)
- fdata\$celltype = as.character(celltype)
- 
- CIset = function(x, y, conf){
-   data.frame(x=x, y=y,
-              upper = mean(y)+qt(conf,length(y)-1)*sd(y)/sqrt(length(y)),
-              lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y)))
- }
- 
- Plot_cor = function(celltype, fdata){
-   for ( i in levels(celltype) ) {
-     cor_i = fdata[fdata\$celltype==i,]
-     nrow(cor_i);nrow(cor_i)
-     cor_i = data.frame(t(data.matrix(cor_i[, colnames(cor_i) != "celltype"])))
-     ret_cor = cor(cor_i)
- 
-     write.table(ret_cor, outf, quote=FALSE, sep="\t")
- 
-     ret_cor_m = data.frame(Means=rowMeans(ret_cor))
-     ret_cor_m_ci = CIset(rownames(ret_cor_m), round(ret_cor_m\$Means, digits=3), 0.99)
- 
-     plot_cor = ggplot(ret_cor_m_ci, aes(x=x,y=y)) +
-       geom_point(size=3, alpha=0.7) +
-       geom_text(aes(label=ifelse(y&lt;upper &amp; y&gt;lower, "", as.character(y))), size=4, hjust=0.0, vjust=1.0) +
-       geom_smooth(method="lm", se=FALSE, aes(group=1)) +
-       geom_ribbon(aes(ymin=lower, ymax=upper, group=1), alpha=0.25) +
-       scale_y_continuous(limits=c(min(ret_cor_m_ci\$y) -0.1, max(ret_cor_m_ci\$y) +0.1)) +
-       theme(axis.text.x=element_text(size=8, angle=90)) +
-       xlab("Sample")+ylab("Cor Means")
-   }
- }
- 
- Plot_cor(celltype, fdata)
- 
- d = dist(fdata[, colnames(fdata) != "celltype"])
- result = pvclust(data.matrix(d), method.dist="euclidean", method.hclust="ward", nboot=1000)
- plot(result)
- pvrect(result, alpha=.95)
+This tool for produce correlations and assessing the uncertainty in hierarchical cluster analysis for count data.
 
 **Attribution**
-This Galaxy tool was created by admin@galaxy.org at 24/05/2015 08:31:39
+This Galaxy tool was created by mika.yoshimura@riken.jp at 03/06/2015 11:30:14
 using the Galaxy Tool Factory.
 
 See https://bitbucket.org/fubar/galaxytoolfactory for details of that project

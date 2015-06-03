@@ -1,5 +1,5 @@
 <tool id="SummaryOfReadQC" name="SummaryOfReadQC" version="0.01">
-
+<description>outputs as plot of perGC, total-reads and Sailfish mapping ratio</description>
 
 <command interpreter="python">
 
@@ -154,10 +154,10 @@ cat("....All Done. End of Script\n")
 
 <help>
 
-**What it Does**
+This tool outputs as plot of perGC, total-reads and Sailfish mapping ratio from specified history.
 
 **Attribution**
-This Galaxy tool was created by admin@galaxy.org at 04/05/2015 11:13:46
+This Galaxy tool was created by mika.yoshimura@riken.jp at 03/06/2015 11:30:14
 using the Galaxy Tool Factory.
 
 See https://bitbucket.org/fubar/galaxytoolfactory for details of that project

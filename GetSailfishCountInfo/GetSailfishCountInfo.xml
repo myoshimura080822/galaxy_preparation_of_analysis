@@ -1,5 +1,5 @@
 <tool id="GetSailfishCountInfo" name="GetSailfishCountInfo" version="0.01">
-
+<description>get datfile-path from Sailfish read count info</description>
 
 <command interpreter="python">
 
@@ -148,10 +148,10 @@ print u"....All Done. End of Script"
 
 <help>
 
-**What it Does**
+This tool get datfile-path from Sailfish read count info outputs.
 
 **Attribution**
-This Galaxy tool was created by admin@galaxy.org at 06/05/2015 08:32:13
+This Galaxy tool was created by mika.yoshimura@riken.jp at 03/06/2015 11:30:14
 using the Galaxy Tool Factory.
 
 See https://bitbucket.org/fubar/galaxytoolfactory for details of that project

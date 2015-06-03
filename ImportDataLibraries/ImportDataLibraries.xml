@@ -1,5 +1,5 @@
 <tool id="ImportDataLibraries" name="ImportDataLibraries" version="0.01">
-
+<description>available to non-admin user for uploading files to a data library</description>
 
 <command interpreter="python">
 
@@ -226,10 +226,10 @@ if __name__ == '__main__':
 
 <help>
 
-**What it Does**
+This tool available to non-admin user for uploading files to a data library.
 
 **Attribution**
-This Galaxy tool was created by admin@galaxy.org at 04/05/2015 11:45:42
+This Galaxy tool was created by mika.yoshimura@riken.jp at 03/06/2015 11:30:14
 using the Galaxy Tool Factory.
 
 See https://bitbucket.org/fubar/galaxytoolfactory for details of that project

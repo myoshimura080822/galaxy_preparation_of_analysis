@@ -1,5 +1,5 @@
 <tool id="DropColumnsByName" name="DropColumnsByName" version="0.01">
-
+<description>remove column from specified name you want to delete</description>
 
 <command interpreter="python">
 
@@ -57,38 +57,10 @@ cat("....All Done. End of Script\n")
 
 <help>
 
-
-**What it Does**
-
-**Script**
-Pressing execute will run the following code over your input file and generate some outputs in your history::
-
-
- library("stringr")
- 
- cat("DropColumnsByName Started......\n")
- cat("\n")
- 
- ourargs = commandArgs(TRUE)
- inf = ourargs[1]
- outf = ourargs[2]
- cat("input file name:");inf
- cat("output file name:");outf
- cat("\n")
- 
- outp = read.table(inf, sep="\t", comment.char = "", header=T)
- ncol(outp)
- teststr = "mES_EBI141225_C04,  mES_EBI141225_D04, PrE_EBI141225_A01    , PrE_EBI141225_A03, PrE_EBI141225_B03     "
- trim = str_trim(unlist(strsplit(teststr, ",")))
- trim
- outp = outp[, !(colnames(outp) %in% trim)]
- ncol(outp)
- write.table(outp, outf, quote=FALSE, sep="\t",row.names=F)
- 
- cat("....All Done. End of Script\n")
+This tool remove columns from specified names in data-table.
 
 **Attribution**
-This Galaxy tool was created by admin@galaxy.org at 24/05/2015 09:47:31
+This Galaxy tool was created by mika.yoshimura@riken.jp at 03/06/2015 11:30:14
 using the Galaxy Tool Factory.
 
 See https://bitbucket.org/fubar/galaxytoolfactory for details of that project
