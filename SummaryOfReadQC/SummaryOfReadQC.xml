@@ -3,7 +3,7 @@
 
 <command interpreter="python">
 
-        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input_fastqc" --input_sailfish "$input_sailfish" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
+        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input_fastqc" --input_sailfish "$input_sailfish" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_fqc "$tab_fqc" --output_sf "$tab_sf" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
     <param name="input_fastqc"  type="data" format="None" label="Select a 'GetFastQCRawDataFiles' output file from your history"/> 
@@ -11,7 +11,9 @@
     <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
 </inputs>
 <outputs>
-    <data format="tabular" name="tab_file" label="${job_name} on ${on_string}"/>
+    <data format="tabular" name="tab_file" label="${job_name} on ${on_string}: Merged summary(single-end only)"/>
+    <data format="tabular" name="tab_fqc" label="${job_name} on ${on_string}: FastQC summary"/>
+    <data format="tabular" name="tab_sf" label="${job_name} on ${on_string}: Sailfish summary"/>
     <data format="html" name="html_file" label="${job_name} on ${on_string}.html"/>
 </outputs>
 <configfiles>
@@ -28,6 +30,8 @@ ourargs = commandArgs(TRUE)
 inf = ourargs[1]
 inf_sf = ourargs[2]
 outf = ourargs[3]
+outf_fqc = ourargs[4]
+outf_sf = ourargs[5]
 cat("input fastqc data:");inf
 cat("input sailfish data:");inf_sf
 cat("output file name:");outf
@@ -54,9 +58,9 @@ total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
 per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
 outp &lt;- data.frame(file_name,total_seq,per_GC)
 
-outp\$cell_type &lt;- str_split_fixed(outp\$file_name, "_", 3)[,1]
-outp\$well &lt;- str_split_fixed(outp\$file_name, "_", 3)[,3]
-summary(outp)
+outp\$cell_type &lt;- str_split_fixed(outp\$file_name, "_", 2)[,1]
+outp\$well &lt;- str_split_fixed(outp\$file_name, "_", 2)[,2]
+head(outp)
 cat("\n")
 
 CIset &lt;- function(x, y, g, w, conf){
@@ -105,8 +109,8 @@ file_name = unlist(colnames(data))
 total_reads = as.numeric(as.character(unname(unlist(data[3,]))))
 mapped_ratio = as.numeric(as.character(unname(unlist(data[2,]))))
 outp_sf = data.frame(file_name,total_reads,mapped_ratio)
-outp_sf\$cell_type &lt;- str_split_fixed(outp_sf\$file_name, "_", 3)[,1]
-outp_sf\$well &lt;- str_split_fixed(outp_sf\$file_name, "_", 3)[,3]
+outp_sf\$cell_type &lt;- str_split_fixed(outp_sf\$file_name, "_", 2)[,1]
+outp_sf\$well &lt;- str_split_fixed(outp_sf\$file_name, "_", 2)[,2]
 head(outp_sf)
 
 ciset &lt;- CIset(outp_sf\$file_name, outp_sf\$mapped_ratio, outp_sf\$cell_type, outp_sf\$well, 0.99)
@@ -125,18 +129,22 @@ ggplot(outp_sf, aes(file_name, mapped_ratio)) +
 
 ggsave(file="sailfish_result.png", width=12, height=5, dpi=100)
 
-############ merged both summary ##############
+write.table(outp, outf_fqc, quote=F, sep="\t")
+write.table(outp_sf, outf_sf, quote=F, sep="\t")
 
-merge_d &lt;- inner_join(outp, outp_sf, by="file_name")
-merge_d &lt;- data.frame(log10(merge_d\$total_seq), merge_d\$per_GC*0.01, merge_d\$mapped_ratio, merge_d\$cell_type.x, merge_d\$well.x)
-colnames(merge_d) &lt;- c("total_seq","per_GC","mapped_ratio", "cell_type", "well")
-rownames(merge_d) &lt;- paste(merge_d\$cell_type, merge_d\$well, sep='_')
-head(merge_d)
+if (nrow(outp) == nrow(outp_sf)) {
+  ############ merged both summary ##############
 
-pairsD3(merge_d[,1:3], group=merge_d\$cell_type, labels=c("Total Seq(Log)", "%GC", "Mapped Ratio"), cex=5, leftmar=40, topmar=15) %&gt;% savePairs(file = "fastqc_and_sailfish_result.html")
+  merge_d &lt;- inner_join(outp, outp_sf, by="file_name")
+  merge_d &lt;- data.frame(log10(merge_d\$total_seq), merge_d\$per_GC*0.01, merge_d\$mapped_ratio, merge_d\$cell_type.x, merge_d\$well.x)
+  colnames(merge_d) &lt;- c("total_seq","per_GC","mapped_ratio", "cell_type", "well")
+  rownames(merge_d) &lt;- paste(merge_d\$cell_type, merge_d\$well, sep='_')
+  head(merge_d)
 
-write.table(merge_d, outf, quote=F, sep="\t")
+  pairsD3(merge_d[,1:3], group=merge_d\$cell_type, labels=c("Total Seq(Log)", "%GC", "Mapped Ratio"), cex=5, leftmar=40, topmar=15) %&gt;% savePairs(file = "fastqc_and_sailfish_result.html")
 
+  write.table(merge_d, outf, quote=F, sep="\t")
+}
 cat("....All Done. End of Script\n")
 </configfile>
 </configfiles>

@@ -65,14 +65,14 @@ graph_of_ind = fviz_pca_ind(ret_pca, data=fdata2, habillage=fdata\$celltype, add
 ggsave(file="graph_of_ind_2D.pdf", plot=graph_of_ind, dpi=100, width=8.5, height=8)
 
 # 3D output
-fdata\$well = str_split_fixed(rownames(fdata), "_", 3)[,3]
+fdata\$well = str_split_fixed(rownames(fdata), "_", 2)[,2]
 fdata\$type = as.character(fdata\$celltype)
 cellinfo = data.frame(type=fdata\$type, well=fdata\$well)
 cellinfo = within(cellinfo, sample_name &lt;- paste(type, well, sep="_"))
 fdata\$sample_name = cellinfo\$sample_name
 plot3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], xlab="Component 1", ylab="Component 2",
-       zlab="Component 3", box=FALSE, size=8, col=as.integer(fdata\$celltype))
-text3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], as.vector(fdata\$sample_name), cex=1.0, adj=1)
+       zlab="Component 3", box=FALSE, size=6, col=as.integer(fdata\$celltype))
+text3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], as.vector(fdata\$sample_name), cex=1.0, adj=1, scale=0.1)
 writeWebGL(dir=getwd(), width=600, height=600)
 
 # Eigenvectors
