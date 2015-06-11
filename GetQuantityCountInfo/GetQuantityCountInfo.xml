@@ -1,18 +1,22 @@
-<tool id="GetSailfishCountInfo" name="GetSailfishCountInfo" version="0.01">
-<description>get datfile-path from Sailfish read count info</description>
+<tool id="GetQuantityCountInfo" name="GetQuantityCountInfo" version="0.01">
+<description>get datfile-path from read count info</description>
 
 <command interpreter="python">
 
-        GetSailfishCountInfo.py --script_path "$runMe" --interpreter "python" 
-            --tool_name "GetSailfishCountInfo" --inp_apikey "$inp_apikey" --inp_hname "$inp_hname" --output_dir "./" --output_tab "$tab_file" 
+        GetQuantityCountInfo.py --script_path "$runMe" --interpreter "python" 
+            --tool_name "GetQuantityCountInfo" --inp_apikey "$inp_apikey" --inp_hname "$inp_hname" --inp_wftype "$inp_wftype" --output_dir "./" --output_tab "$tab_file" 
 </command>
 <inputs>
-    <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="GetSailfishCountInfo"/> 
+    <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="GetQuantityCountInfo"/> 
     <param name="inp_apikey" size="50" type="text" label="Copy and Paste your API_KEY from Menu-bar[User]>[API keys]>[Current API key] " value="">
         <validator type="empty_field" message="No API_KEY is available for the input text form"/>
     </param>
     <param name="inp_hname" size="30" type="text" label="Supply your Current history name from top of history pain " value="">
         <validator type="empty_field" message="No Current hitory name is available for the input text form"/>
+    </param>
+    <param name="inp_wftype" type="select" label="Chouse of used quantification tool ">
+        <option value="sailfish">use Sailfish</option>
+        <option value="eXpress">use eXpress</option>
     </param>
 </inputs>
 <outputs>
@@ -33,17 +37,19 @@ from bioblend.galaxy.datasets import DatasetClient
 import pandas
 
 print  os.getcwd()
-print u"GetSailfishCountInfo.py Started......"
+print u"GetQuantityCountInfo.py Started......"
 
 inp = sys.argv[1]
 inp_apikey = sys.argv[2]
 inp_hname = sys.argv[3]
+inp_wftype = sys.argv[4]
 
-outp = sys.argv[4]
+outp = sys.argv[5]
 
 print u"inp: " + inp
 print u"inp_apikey: " + inp_apikey
 print u"inp_hname: " + inp_hname
+print u"inp_wftype: " + inp_wftype
 print u"outp: " + outp
 
 if len(inp_apikey.strip()) == 0:
@@ -52,8 +58,12 @@ if len(inp_apikey.strip()) == 0:
 if len(inp_hname.strip()) == 0:
     raise Exception, 'Current History Name is not entered.'
 
-output_name = "reads_count_info"
-output_chk = "mapped_ratio"
+if "sailfish" in inp_wftype:
+    output_name = "reads_count_info"
+    output_chk = "mapped_ratio"
+else:
+    output_name = "Flagstat on data"
+    output_chk = "QC-passed"
 
 print output_name + " /file chk str:" + output_chk
 
@@ -93,8 +103,23 @@ def dl_dset(id, dClient, dir):
     return ret_set
 
 def get_sample_name(path_list, hst_cont_all):
-    tmp01 = [item.split(':')[0].split(' ')[-1] for item in path_list['name']]
-    tmp02 = [item.split(' ')[-1] for item in tmp01]
+
+    if "sailfish" in inp_wftype:
+        tmp01 = [item.split(':')[0].split(' ')[-1] for item in path_list['name']]
+        tmp02 = [item.split(' ')[-1] for item in tmp01]
+    else:
+        bowtie_id = [item.split(' ')[3] for item in path_list['name']]
+        bowtie_name = [[item['name'] for item in hst_cont_all if item['hid'] == int(hid)] for hid in bowtie_id]
+        bef_split = [item[0].split(':')[0] for item in bowtie_name]
+        if "," in bef_split[0]:
+            reads_id = [item.split(' ')[-1] for item in bef_split]
+            print reads_id
+            mates_id = [item.split(' ')[5].replace(',','') for item in bef_split]
+            print mates_id
+            tmp02 = reads_id
+        else:
+            tmp02 = [item.split(' ')[-1] for item in bef_split]
+
     path_list['mcf_hid'] = tmp02
     tmp03 = [[item['name'] for item in hst_cont_all if item['hid'] == int(hid)] for hid in tmp02]
 
@@ -133,7 +158,7 @@ def main():
         out_list = get_sample_name(path_list, hst_cont_all)
         dataout(out_list, outp)
     else:
-        'sailfish output file is not found.'
+        'Count-data result dataset is not found.'
 
 if __name__ == '__main__':
         main()

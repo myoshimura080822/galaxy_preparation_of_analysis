@@ -205,6 +205,7 @@ class ScriptRunner:
         a(opts.input_tab)
         a(opts.inp_apikey)
         a(opts.inp_hname)
+        a(opts.inp_wftype)
         a(opts.output_tab)
         self.outputFormat = self.opts.output_format
         self.inputFormats = self.opts.input_formats 
@@ -718,6 +719,7 @@ def main():
     a('--input_tab',default="None")
     a('--inp_apikey',default="None")
     a('--inp_hname',default="None")
+    a('--inp_wftype',default="None")
     a('--input_formats',default="tabular,text")
     a('--output_tab',default="None")
     a('--output_format',default="tabular")
