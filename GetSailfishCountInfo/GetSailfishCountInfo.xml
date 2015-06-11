@@ -133,7 +133,7 @@ def main():
         out_list = get_sample_name(path_list, hst_cont_all)
         dataout(out_list, outp)
     else:
-        raise Exception, inp_wftype + ' output file is not found.'
+        'sailfish output file is not found.'
 
 if __name__ == '__main__':
         main()
