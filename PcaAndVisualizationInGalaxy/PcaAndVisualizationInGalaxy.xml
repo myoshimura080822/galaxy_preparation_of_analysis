@@ -47,6 +47,7 @@ matrix = data.matrix(outp)
 idx = rowVars(matrix) == 0
 fmatrix = matrix[!idx,]
 fmatrix = log10(fmatrix + 1)
+fmatrix = apply(fmatrix,2,function(x){ifelse(is.nan(x), 0, x)})
 
 fdata = data.frame(t(fmatrix))
 geneno = nrow(fdata)
@@ -54,6 +55,7 @@ nrow(fdata);ncol(fdata)
 fdata\$celltype &lt;- celltype
 
 ret_pca = prcomp(t(fmatrix), scale = FALSE, center = TRUE)
+
 
 screeplot = fviz_screeplot(ret_pca, ncp=nrow(fdata), addlabels=F) + theme_minimal()
 ggsave(file="scree_plot.pdf", plot=screeplot, dpi=100, width = 14, height = 6)

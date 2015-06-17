@@ -4,15 +4,14 @@
 <command interpreter="python">
 
         CorrAndClusterForLogCountData.py --script_path "$runMe" --interpreter "Rscript" 
-            --tool_name "CorrAndClusterForLogCountData" --input_tab "$input1"  --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_tab2 "$tab_file2" --output_html "$html_file" --make_HTML "yes" 
+            --tool_name "CorrAndClusterForLogCountData" --input_tab "$input1"  --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
 <param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
 <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="CorrAndClusterForLogCountData"/> 
 </inputs>
 <outputs>
- <data format="tabular" name="tab_file" label="${job_name} on ${on_string}_corr01"/>
- <data format="tabular" name="tab_file2" label="${job_name} on ${on_string}_corr02"/>
+ <data format="tabular" name="tab_file" label="${job_name} on ${on_string}_correlation coefficient"/>
  <data format="html" name="html_file" label="${job_name} on ${on_string}_output.html"/>
 </outputs>
 <configfiles>
@@ -21,6 +20,7 @@ library("matrixStats")
 library("stringr")
 library("pvclust")
 library("ggplot2")
+library(lattice)
 
 cat("CorrAndClusterForLogCountData Started......\n")
 cat("\n")
@@ -28,10 +28,8 @@ cat("\n")
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
 outf = ourargs[2]
-outf2 = ourargs[3]
 cat("input file name:");inf
 cat("output file name(1):");outf
-cat("output file name(2):");outf2
 cat("\n")
 
 outp = read.table(inf, sep="\t", comment.char = "", header=T)
@@ -45,7 +43,7 @@ matrix = data.matrix(outp)
 idx = rowVars(matrix) == 0
 fmatrix = matrix[!idx,]
 fmatrix = log10(fmatrix + 1)
-
+fmatrix = apply(fmatrix,2,function(x){ifelse(is.nan(x), 0, x)})
 fdata = data.frame(t(fmatrix))
 nrow(fdata);ncol(fdata)
 fdata\$celltype = as.character(celltype)
@@ -58,32 +56,29 @@ CIset = function(x, y, conf){
 
 count = 0
 Plot_cor = function(celltype, fdata){
-  for ( i in levels(celltype) ) {
-    cor_i = fdata[fdata\$celltype==i,]
-    nrow(cor_i);nrow(cor_i)
-    cor_i = data.frame(t(data.matrix(cor_i[, colnames(cor_i) != "celltype"])))
-    ret_cor = cor(cor_i)
+  nrow(fdata);nrow(fdata)
+  cor_data= data.frame(t(data.matrix(fdata[, colnames(fdata) != "celltype"])))
+  ret_cor = cor(cor_data)
+  write.table(ret_cor, outf, quote=FALSE, sep="\t")
 
-    outf = ifelse(count==0, outf, outf2)
-    write.table(ret_cor, outf, quote=FALSE, sep="\t")
+  ret_cor_m = data.frame(Means=rowMeans(ret_cor))
+  ret_cor_m_ci = CIset(rownames(ret_cor_m), round(ret_cor_m\$Means, digits=3), 0.99)
 
-    ret_cor_m = data.frame(Means=rowMeans(ret_cor))
-    ret_cor_m_ci = CIset(rownames(ret_cor_m), round(ret_cor_m\$Means, digits=3), 0.99)
+  plot_cor = ggplot(ret_cor_m_ci, aes(x=x,y=y)) +
+  geom_point(size=3, alpha=0.7) +
+  geom_text(aes(label=ifelse(y&lt;upper &amp; y&gt;lower, "", as.character(y))), size=4, hjust=0.0, vjust=1.0) +
+  geom_smooth(method="lm", se=FALSE, aes(group=1)) +
+  geom_ribbon(aes(ymin=lower, ymax=upper, group=1), alpha=0.25) +
+  scale_y_continuous(limits=c(min(ret_cor_m_ci\$y) -0.1, max(ret_cor_m_ci\$y) +0.1)) +
+  theme(axis.text.x=element_text(size=8, angle=90)) +
+  xlab("Sample")+ylab("Cor Means")
 
-    plot_cor = ggplot(ret_cor_m_ci, aes(x=x,y=y)) +
-      geom_point(size=3, alpha=0.7) +
-      geom_text(aes(label=ifelse(y&lt;upper &amp; y&gt;lower, "", as.character(y))), size=4, hjust=0.0, vjust=1.0) +
-      geom_smooth(method="lm", se=FALSE, aes(group=1)) +
-      geom_ribbon(aes(ymin=lower, ymax=upper, group=1), alpha=0.25) +
-      scale_y_continuous(limits=c(min(ret_cor_m_ci\$y) -0.1, max(ret_cor_m_ci\$y) +0.1)) +
-      theme(axis.text.x=element_text(size=8, angle=90)) +
-      xlab("Sample")+ylab("Cor Means")
+  fname = "corr_mean_plot.png"
+  ggsave(file=fname, plot=plot_cor, width=12, height=5, dpi=100)
 
-    fname = str_c("output_corr_result_", as.character(i), ".png", sep = "")
-    ggsave(file=fname, plot=plot_cor, width=12, height=5, dpi=100)
-    
-    count = count+1
-  }
+  png("corr_heatmap.png", width=1000, height=1000)
+  print(levelplot(ret_cor, col.regions=heat.colors, xlab="", ylab="", scales=list(x=list(rot=90))))
+  dev.off()
 }
 
 Plot_cor(celltype, fdata)
