@@ -4,10 +4,11 @@
 <command interpreter="python">
 
         CorrAndClusterForLogCountData.py --script_path "$runMe" --interpreter "Rscript" 
-            --tool_name "CorrAndClusterForLogCountData" --input_tab "$input1"  --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
+            --tool_name "CorrAndClusterForLogCountData" --input_tab "$input1"  --input_int "$input2" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
 <param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
+<param name="input2"  type="text" label="Please input a number of cell-name index in column-name(separated '_')" value="1"/>
 <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="CorrAndClusterForLogCountData"/> 
 </inputs>
 <outputs>
@@ -27,8 +28,11 @@ cat("\n")
 
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
-outf = ourargs[2]
+cell_idx = ourargs[2]
+outf = ourargs[3]
 cat("input file name:");inf
+cat("cell name index: ");cell_idx
+cell_idx = as.integer(cell_idx)
 cat("output file name(1):");outf
 cat("\n")
 
@@ -37,7 +41,7 @@ rownames(outp) = outp[,1]
 outp = outp[, -1]
 outp = outp[, order(names(outp))]
 celltype = as.data.frame(str_split(colnames(outp), "_"))
-celltype = factor(sort(unname(unlist(celltype[1,]))))
+celltype = factor(sort(unname(unlist(celltype[cell_idx,]))))
 
 matrix = data.matrix(outp)
 idx = rowVars(matrix) == 0
@@ -74,9 +78,9 @@ Plot_cor = function(celltype, fdata){
   xlab("Sample")+ylab("Cor Means")
 
   fname = "corr_mean_plot.png"
-  ggsave(file=fname, plot=plot_cor, width=12, height=5, dpi=100)
+  ggsave(file=fname, plot=plot_cor, width=16, height=4, dpi=100)
 
-  png("corr_heatmap.png", width=1000, height=1000)
+  png("corr_heatmap.png", width=1200, height=1200)
   print(levelplot(ret_cor, col.regions=heat.colors, xlab="", ylab="", scales=list(x=list(rot=90))))
   dev.off()
 }
@@ -85,7 +89,7 @@ Plot_cor(celltype, fdata)
 
 d = dist(fdata[, colnames(fdata) != "celltype"])
 result = pvclust(data.matrix(d), method.dist="euclidean", method.hclust="ward", nboot=1000)
-png("output_pvclust_result.png", width=1200, height=600)
+png("output_pvclust_result.png", width=1600, height=400)
 plot(result)
 pvrect(result, alpha=.95)
 dev.off()

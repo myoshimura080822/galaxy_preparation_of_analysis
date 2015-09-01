@@ -3,10 +3,11 @@
 
 <command interpreter="python">
         PcaAndVisualizationInGalaxy.py --script_path "$runMe" --interpreter "Rscript" 
-            --tool_name "PcaAndVisualizationInGalaxy" --input_tab "$input1" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_tab2 "$tab_file2" --output_html "$html_file" --make_HTML "yes" 
+            --tool_name "PcaAndVisualizationInGalaxy" --input_tab "$input1" --input_int "$input2" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_tab2 "$tab_file2" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
 <param name="input1"  type="data" format="tabular" label="Select a suitable input file from your history"/> 
+<param name="input2"  type="text" label="Please input a number of cell-name index in column-name(separated '_')" value="1"/>
 <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="PcaAndVisualizationInGalaxy"/> 
 
 </inputs>
@@ -29,9 +30,12 @@ cat("\n")
 
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
-outf = ourargs[2]
-outf2 = ourargs[3]
-cat("input file name:");inf
+cell_idx = ourargs[2]
+outf = ourargs[3]
+outf2 = ourargs[4]
+cat("input file name: ");inf
+cat("cell name index: ");cell_idx
+cell_idx = as.integer(cell_idx)
 cat("output file name(1):");outf
 cat("output file name(2):");outf2
 cat("\n")
@@ -41,7 +45,7 @@ rownames(outp) = outp[,1]
 outp = outp[, -1]
 outp = outp[, order(names(outp))]
 celltype = as.data.frame(str_split(colnames(outp), "_"))
-celltype = factor(sort(unname(unlist(celltype[1,]))))
+celltype = factor(sort(unname(unlist(celltype[cell_idx,]))))
 
 matrix = data.matrix(outp)
 idx = rowVars(matrix) == 0
@@ -58,13 +62,13 @@ ret_pca = prcomp(t(fmatrix), scale = FALSE, center = TRUE)
 
 
 screeplot = fviz_screeplot(ret_pca, ncp=nrow(fdata), addlabels=F) + theme_minimal()
-ggsave(file="scree_plot.pdf", plot=screeplot, dpi=100, width = 14, height = 6)
+ggsave(file="scree_plot.pdf", plot=screeplot, dpi=100, width = 16, height = 4)
 
 # 2D output
 fdata2 = fdata[, colnames(fdata) != "celltype"]
 max_val = max(c(max(abs(ret_pca\$x[,1])), max(abs(ret_pca\$x[,2])))) + 5
 graph_of_ind = fviz_pca_ind(ret_pca, data=fdata2, habillage=fdata\$celltype, addEllipses=TRUE, ellipse.level=0.95) + xlim(-max_val, max_val) + ylim (-max_val, max_val)
-ggsave(file="graph_of_ind_2D.pdf", plot=graph_of_ind, dpi=100, width=8.5, height=8)
+ggsave(file="graph_of_ind_2D.pdf", plot=graph_of_ind, dpi=100, width=12, height=12)
 
 # 3D output
 fdata\$well = str_split_fixed(rownames(fdata), "_", 2)[,2]

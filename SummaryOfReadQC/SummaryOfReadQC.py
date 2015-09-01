@@ -204,6 +204,7 @@ class ScriptRunner:
             a('-') # stdin
         a(opts.input_tab)
         a(opts.input_countinfo)
+        a(opts.input_int)
         a(opts.output_tab)
         a(opts.output_fqc)
         a(opts.output_sf)
@@ -718,6 +719,7 @@ def main():
     a('--output_html',default=None)
     a('--input_tab',default="None")
     a('--input_countinfo',default="None")
+    a('--input_int',default="None")
     a('--input_formats',default="tabular,text")
     a('--output_tab',default="None")
     a('--output_fqc',default="None")

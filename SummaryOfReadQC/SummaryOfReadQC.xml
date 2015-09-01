@@ -3,11 +3,12 @@
 
 <command interpreter="python">
 
-        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input_fastqc" --input_countinfo "$input_countinfo" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_fqc "$tab_fqc" --output_sf "$tab_sf" --output_html "$html_file" --make_HTML "yes" 
+        SummaryOfReadQC.py --script_path "$runMe" --interpreter "Rscript" --tool_name "SummaryOfReadQC" --input_tab "$input_fastqc" --input_countinfo "$input_countinfo" --input_int "$input2" --output_dir "$html_file.files_path" --output_tab "$tab_file" --output_fqc "$tab_fqc" --output_sf "$tab_sf" --output_html "$html_file" --make_HTML "yes" 
 </command>
 <inputs>
     <param name="input_fastqc"  type="data" format="tabular" label="Select a 'GetFastQCRawDataFiles' output file from your history"/> 
     <param name="input_countinfo"  type="data" format="tabular" label="Select a 'GetQuantityCountInfo' output file from your history"/> 
+    <param name="input2"  type="text" label="Please input a number of cell-name index in column-name(separated '_')" value="1"/> 
     <param name="job_name" type="text" label="Supply a name for the outputs to remind you what they contain" value="SummaryOfReadQC"/> 
 </inputs>
 <outputs>
@@ -29,11 +30,14 @@ library("magrittr")
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
 inf_sf = ourargs[2]
-outf = ourargs[3]
-outf_fqc = ourargs[4]
-outf_sf = ourargs[5]
+cell_idx = ourargs[3]
+outf = ourargs[4]
+outf_fqc = ourargs[5]
+outf_sf = ourargs[6]
 cat("input fastqc data:");inf
 cat("input countinfo data:");inf_sf
+cell_idx = as.integer(cell_idx)
+cat("cell-name index: ");cell_idx
 cat("output file name:");outf
 cat("\n")
 
@@ -58,8 +62,9 @@ total_seq = as.numeric(as.character(unname(unlist(data["Total_Sequences",]))))
 per_GC = as.numeric(as.character(unname(unlist(data["%GC",]))))
 outp &lt;- data.frame(file_name,total_seq,per_GC)
 
-outp\$cell_type &lt;- str_split_fixed(outp\$file_name, "_", 2)[,1]
-outp\$well &lt;- str_split_fixed(outp\$file_name, "_", 2)[,2]
+well_idx = cell_idx + 1 
+outp\$cell_type &lt;- str_split_fixed(outp\$file_name, "_", well_idx)[,cell_idx]
+outp\$well &lt;- str_split_fixed(outp\$file_name, "_", well_idx)[,well_idx]
 head(outp)
 cat("\n")
 
@@ -77,17 +82,18 @@ plot_t &lt;- ggplot(plot_tseq, aes(x=x,y=y)) +
   geom_smooth(method="lm", se=FALSE, aes(group=cell_type)) +
   geom_ribbon(aes(ymin=lower, ymax=upper, group=cell_type, fill=cell_type), alpha=0.25) +
   scale_y_continuous(limits=c(min(plot_tseq\$y) -0.5, max(plot_tseq\$y) +0.5)) +
-  xlab("Sample")+ylab("TotalSeq(log10)")+theme(axis.text.x=element_blank())
+  xlab("Sample") + ylab("TotalSeq(log10)") + 
+  theme(axis.text.x=element_text(size=6, angle=90))
 
 plot_gc &lt;- ggplot(outp, aes(file_name,per_GC)) +
   geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
   ylim(0, 100) +
   xlab("Sample")+ylab("%GC") +
   scale_x_discrete(labels=outp\$well) + 
-  theme(axis.text.x=element_text(size=8, angle=90))
+  theme(axis.text.x=element_text(size=6, angle=90))
 
-ggsave(file="fastqc_totalseq.png", plot=plot_t, width=12, height=5, dpi=100)
-ggsave(file="fastqc_perGC.png", plot=plot_gc, width=12, height=5, dpi=100)
+ggsave(file="fastqc_totalseq.png", plot=plot_t, width=18, height=4, dpi=100)
+ggsave(file="fastqc_perGC.png", plot=plot_gc, width=18, height=4, dpi=100)
 
 write.table(outp, outf_fqc, quote=F, sep="\t")
 
@@ -134,8 +140,8 @@ if (length(grep("Flagstat", path_list[["name"]])) == 0) {
 }
 
 outp_sf = data.frame(file_name,total_reads,mapped_ratio)
-outp_sf\$cell_type &lt;- str_split_fixed(outp_sf\$file_name, "_", 2)[,1]
-outp_sf\$well &lt;- str_split_fixed(outp_sf\$file_name, "_", 2)[,2]
+outp_sf\$cell_type &lt;- str_split_fixed(outp_sf\$file_name, "_", well_idx)[,cell_idx]
+outp_sf\$well &lt;- str_split_fixed(outp_sf\$file_name, "_", well_idx)[,well_idx]
 head(outp_sf)
 
 ciset &lt;- CIset(outp_sf\$file_name, outp_sf\$mapped_ratio, outp_sf\$cell_type, outp_sf\$well, 0.99)
@@ -149,10 +155,10 @@ ggplot(outp_sf, aes(file_name, mapped_ratio)) +
   ylim(0, 1) +
   xlab("Sample")+ylab("Mapped Ratio") +
   scale_x_discrete(labels=outp_sf\$well) + 
-  theme(axis.text.x=element_text(size=8, angle=90)) + 
+  theme(axis.text.x=element_text(size=6, angle=90)) + 
   geom_text(aes(label=ifelse(outp_sf\$mapped_ratio &gt; lower, "", as.character(round(outp_sf\$mapped_ratio, 2)))), size=3, hjust=0.0, vjust=1.0)
 
-ggsave(file="result_mapped_ratio.png", width=12, height=5, dpi=100)
+ggsave(file="result_mapped_ratio.png", width=18, height=4, dpi=100)
 
 write.table(outp_sf, outf_sf, quote=F, sep="\t")
 
