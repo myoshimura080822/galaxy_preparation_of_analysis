@@ -82,7 +82,7 @@ plot_t &lt;- ggplot(plot_tseq, aes(x=x,y=y)) +
   geom_text(aes(label=ifelse(y&lt;upper+0.1 &amp; y&gt;lower-0.1, "", as.character(plot_tseq\$well))), size=4, hjust=0.0, vjust=1.0) +
   geom_smooth(method="lm", se=FALSE, aes(group=cell_type)) +
   geom_ribbon(aes(ymin=lower, ymax=upper, group=cell_type, fill=cell_type), alpha=0.25) +
-  scale_y_continuous(limits=c(min(plot_tseq\$y) -0.5, max(plot_tseq\$y) +0.5)) +
+  #scale_y_continuous(limits=c(min(plot_tseq\$y) -0.5, max(plot_tseq\$y) +0.5)) +
   xlab("Sample") + ylab("TotalSeq(log10)") + 
   theme(axis.text.x=element_text(size=6, angle=90))
 
@@ -166,9 +166,9 @@ ciset &lt;- CIset(outp_sf\$file_name, outp_sf\$mapped_ratio, outp_sf\$cell_type,
 lower &lt;- round(as.numeric(ciset\$lower,2),2)
 
 ggplot(outp_sf, aes(file_name, mapped_ratio)) +
-  layer(data=outp_sf, 
-        mapping=aes(x=file_name, y=1, fill=cell_type), 
-        geom="bar", stat="identity", position="identity", alpha=0.25) +
+  #layer(data=outp_sf, 
+  #      mapping=aes(x=file_name, y=1, fill=cell_type), 
+  #      geom="bar", stat="identity", position="identity", alpha=0.25) +
   geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
   ylim(0, 1) +
   xlab("Sample")+ylab("Mapped Ratio") +
