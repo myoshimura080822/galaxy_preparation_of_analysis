@@ -109,7 +109,10 @@ def get_sample_name(path_list, hst_cont_all):
     tmp05 = [[item['name'] for item in hst_cont_all if item['hid'] == int(hid)] for hid in tmp04]
     tmp06 = [item[0].split('.')[0] for item in tmp05]
     path_list['sample_name'] = tmp06
-    path_list = path_list.drop_duplicates(cols='sample_name', take_last=True)
+    if os.path.isfile("/galaxy-central/tool-data/sailfish_0.9_index.loc"):
+        path_list = path_list.drop_duplicates(subset=['sample_name'], take_last=True)
+    else:
+        path_list = path_list.drop_duplicates(cols='sample_name', take_last=True)
     return path_list
 
 def dataout(data, filename):
