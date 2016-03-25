@@ -26,6 +26,7 @@ library("stringr")
 library("ggplot2")
 library("pairsD3")
 library("magrittr")
+library("jsonlite")
 
 ourargs = commandArgs(TRUE)
 inf = ourargs[1]
@@ -101,7 +102,7 @@ write.table(outp, outf_fqc, quote=F, sep="\t")
 path_list &lt;- read.table(inf_sf, header=T, row.names=1, sep="\t")
 head(path_list)
 
-if (length(grep("Flagstat", path_list[["name"]])) == 0) {
+if (length(grep("reads_count_info", path_list[["name"]])) > 0) {
 
     data &lt;- ldply(
         as.character(path_list[["file_name"]]),
@@ -117,6 +118,23 @@ if (length(grep("Flagstat", path_list[["name"]])) == 0) {
     file_name = unlist(colnames(data))
     total_reads = as.numeric(as.character(unname(unlist(data[3,]))))
     mapped_ratio = as.numeric(as.character(unname(unlist(data[2,]))))
+
+} else if (length(grep("meta_info", path_list[["name"]])) > 0){
+
+    data &lt;- ldply(
+    as.character(path_list[["file_name"]]),
+        function(x){
+            tmp = fromJSON(x)
+            data.frame(filename=subset(path_list, file_name==x, select=sample_name),
+            mapped_ratio=tmp\$percent_mapped,
+            total_reads=tmp\$num_processed)
+        }
+    )
+    
+    rownames(data) &lt;- data\$sample_name
+    file_name = unlist(rownames(data))
+    total_reads = as.numeric(data\$total_reads)
+    mapped_ratio = as.numeric(data\$mapped_ratio) * 0.01
 
 } else {
 
