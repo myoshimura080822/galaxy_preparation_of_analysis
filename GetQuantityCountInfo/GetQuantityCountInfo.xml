@@ -15,6 +15,7 @@
         <validator type="empty_field" message="No Current hitory name is available for the input text form"/>
     </param>
     <param name="inp_wftype" type="select" label="Chouse of used quantification tool ">
+        <option value="sailfish_0.9">use Sailfish v0.9</option>
         <option value="sailfish">use Sailfish</option>
         <option value="eXpress">use eXpress</option>
     </param>
@@ -58,9 +59,12 @@ if len(inp_apikey.strip()) == 0:
 if len(inp_hname.strip()) == 0:
     raise Exception, 'Current History Name is not entered.'
 
-if "sailfish" in inp_wftype:
+if inp_wftype == "sailfish":
     output_name = "reads_count_info"
     output_chk = "mapped_ratio"
+elif "sailfish_0.9" in inp_wftype:
+    output_name = "meta_info"
+    output_chk = "sf_version"
 else:
     output_name = "Flagstat on data"
     output_chk = "QC-passed"
