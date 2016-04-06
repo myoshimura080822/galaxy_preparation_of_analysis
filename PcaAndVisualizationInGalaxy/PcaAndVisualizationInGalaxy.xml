@@ -82,8 +82,9 @@ text3d(ret_pca\$x[,1], ret_pca\$x[,2], ret_pca\$x[,3], as.vector(fdata\$sample_n
 writeWebGL(dir=getwd(), width=600, height=600)
 
 # Eigenvectors
-eigv = ret_pca\$rotation
-write.table(eigv, outf, quote=FALSE, sep="\t")
+# eigv = ret_pca\$rotation
+# PC loading
+write.table(ret_pca\$x, outf, quote=FALSE, sep="\t")
 
 # Eigenvalues
 eig = (ret_pca\$sdev)^2
