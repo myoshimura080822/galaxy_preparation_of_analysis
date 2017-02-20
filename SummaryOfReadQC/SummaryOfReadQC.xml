@@ -75,7 +75,13 @@ CIset &lt;- function(x, y, g, w, conf){
              lower = mean(y)-qt(conf,length(y)-1)*sd(y)/sqrt(length(y)))
 }
 
-plot_tseq &lt;- CIset(outp\$file_name, log10(outp\$total_seq), outp\$cell_type, outp\$well, 0.99)
+SDset &lt;- function(x, y, g, w){
+  data.frame(x=x, y=y, cell_type=g, well=w, 
+  upper = mean(y)+3*sd(y), 
+  lower = mean(y)-3*sd(y))
+}
+
+plot_tseq &lt;- SDset(outp\$file_name, log10(outp\$total_seq), outp\$cell_type, outp\$well)
 
 plot_t &lt;- ggplot(plot_tseq, aes(x=x,y=y)) +
   geom_point(size=3, alpha=0.7, aes(colour=cell_type)) +
@@ -90,7 +96,6 @@ plot_gc &lt;- ggplot(outp, aes(file_name,per_GC)) +
   geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
   ylim(0, 100) +
   xlab("Sample")+ylab("%GC") +
-  scale_x_discrete(labels=outp\$well) + 
   theme(axis.text.x=element_text(size=6, angle=90))
 
 ggsave(file="fastqc_totalseq.png", plot=plot_t, width=18, height=4, dpi=100)
@@ -162,17 +167,13 @@ outp_sf\$cell_type &lt;- str_split_fixed(outp_sf\$file_name, "_", well_idx)[,cel
 outp_sf\$well &lt;- str_split_fixed(outp_sf\$file_name, "_", well_idx)[,well_idx]
 head(outp_sf)
 
-ciset &lt;- CIset(outp_sf\$file_name, outp_sf\$mapped_ratio, outp_sf\$cell_type, outp_sf\$well, 0.99)
+ciset &lt;- SDset(outp_sf\$file_name, outp_sf\$mapped_ratio, outp_sf\$cell_type, outp_sf\$well)
 lower &lt;- round(as.numeric(ciset\$lower,2),2)
 
 ggplot(outp_sf, aes(file_name, mapped_ratio)) +
-  #layer(data=outp_sf, 
-  #      mapping=aes(x=file_name, y=1, fill=cell_type), 
-  #      geom="bar", stat="identity", position="identity", alpha=0.25) +
   geom_bar(alpha=0.7, aes(fill=cell_type), stat="identity") +
   ylim(0, 1) +
   xlab("Sample")+ylab("Mapped Ratio") +
-  scale_x_discrete(labels=outp_sf\$well) + 
   theme(axis.text.x=element_text(size=6, angle=90)) + 
   geom_text(aes(label=ifelse(outp_sf\$mapped_ratio &gt; lower, "", as.character(round(outp_sf\$mapped_ratio, 2)))), size=3, hjust=0.0, vjust=1.0)
 
